@@ -1,0 +1,8 @@
+title = "Kanche secret scanning"
+
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Generated dependencies and build products; never source or captures"
+paths = ['''(^|/)node_modules/''', '''^target/''', '''^\.tools/''']
