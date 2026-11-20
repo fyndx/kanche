@@ -15,6 +15,9 @@ make security
 ```
 
 CI runs the quality and security checks with pinned tools on Ubuntu 24.04.
+JavaScript linting uses Oxlint; JavaScript, configuration, and documentation
+formatting uses Oxfmt. Run `npm run lint`, `npm run fmt`, or `npm run fmt:check`
+for these checks independently. Rust formatting continues to use Rustfmt.
 Add tests for changed contracts and relevant security or failure behavior.
 Do not add tests merely to mirror simple edits. Use temporary keys, synthetic
 identities, and isolated resources. Never record tokens, cookies, credentials,
