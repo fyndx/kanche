@@ -7,6 +7,8 @@ PostgreSQL, a TypeScript server SDK and Next.js adapter. See the
 [working integration/setup contract](docs/contracts/app-owned-integration.md).
 The [hosted login profile](docs/contracts/hosted-integration.md) uses the same
 app-bound sessions. Organizations, signup/recovery and console APIs remain undelivered.
+[Both-profile verification evidence](docs/verification/hosted-login.md) records
+fresh-checkout results, browser findings and remaining operational limits.
 
 - [Product features and flows](Features.md)
 - [Planning and design gates](docs/architecture/v1-roadmap.md)

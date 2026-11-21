@@ -10,7 +10,14 @@ No shared Kanche login/SSO, organizations, JWT, signup or recovery API is introd
 
 ## Configuration and callback registration
 
-Apply all operator migrations before enabling hosted routes. Set
+Apply all operator migrations before upgrading to this server, even when hosted
+routes stay disabled: shared maintenance now invalidates hosted handoffs too.
+Migration0002 is additive and the upgrade test preserves a v1 account/session;
+mixed-version rolling behavior has not been verified. Use the new operator for
+all removal/recovery writes after upgrading. To roll back, stop hosted traffic,
+run the new operator's revoke-all (invalidates pending handoffs as well as sessions),
+then use the old app-owned server; do not drop tables or restore a backup as a
+shortcut. Full rollback/restore drills remain unverified. Set
 `KANCHE_HOSTED_ORIGIN` explicitly to the canonical externally visible service
 origin. HTTPS is required except explicit loopback HTTP development. Omitting the
 setting leaves hosted routes disabled. Incoming Host/forwarded headers cannot
@@ -122,7 +129,7 @@ npm run typecheck
 npm run evidence
 ```
 
-See the verification record for actual passing scope and gaps. Local checks do
+See the [verification record](../verification/hosted-login.md) for actual passing scope and gaps. Local checks do
 not establish deployment TLS, remote database TLS, edge abuse resistance,
 capacity/HA, managed-key operations, browser-matrix coverage or backup/restore
 readiness. The database-wide authority lock remains intentionally coarse. Restore
