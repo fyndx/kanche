@@ -13,6 +13,10 @@ export type Session = {
   absolute_expires_at: number;
 };
 export type Verified = { user: Identity; session: Session };
+export type HostedTransaction = {
+  authorization_url: string;
+  expires_at: number;
+};
 export class KancheError extends Error {
   readonly code: string;
   readonly status: number;
@@ -135,6 +139,8 @@ export class Kanche {
           "unauthenticated",
           "rate_limited",
           "temporarily_unavailable",
+          "invalid_handoff",
+          "invalid_redirect_uri",
         ];
         throw new KancheError(
           known.includes(data?.code) ? data.code : "service_error",
@@ -175,15 +181,91 @@ export class Kanche {
       },
     };
   }
-  async signIn(email: string, password: string): Promise<Grant> {
-    const value = (await this.#call("/v1/auth/sign-ins", "POST", undefined, {
-      email,
-      password,
-    })) as Verified & { session: Session & { credential: string } };
+  #grant(value: unknown): Grant {
     const verified = this.#verified(value);
-    if (!/^[a-f0-9]{64}$/.test(value.session.credential))
+    const credential = (value as { session: { credential?: unknown } }).session
+      .credential;
+    if (typeof credential !== "string" || !/^[a-f0-9]{64}$/.test(credential))
       throw new KancheError("invalid_response");
-    return new Grant(verified, value.session.credential);
+    return new Grant(verified, credential);
+  }
+  async signIn(email: string, password: string): Promise<Grant> {
+    return this.#grant(
+      await this.#call("/v1/auth/sign-ins", "POST", undefined, {
+        email,
+        password,
+      }),
+    );
+  }
+  async startHosted(
+    redirectUri: string,
+    state: string,
+    codeChallenge: string,
+  ): Promise<HostedTransaction> {
+    if (
+      !/^[a-f0-9]{64}$/.test(state) ||
+      !/^[A-Za-z0-9_-]{43}$/.test(codeChallenge) ||
+      typeof redirectUri !== "string"
+    )
+      throw new KancheError("invalid_request", 400);
+    const value = (await this.#call(
+      "/v1/hosted/transactions",
+      "POST",
+      undefined,
+      {
+        redirect_uri: redirectUri,
+        state,
+        code_challenge: codeChallenge,
+        code_challenge_method: "S256",
+      },
+    )) as HostedTransaction;
+    try {
+      if (
+        !value ||
+        typeof value.authorization_url !== "string" ||
+        !Number.isSafeInteger(value.expires_at) ||
+        value.expires_at <= 0
+      )
+        throw new KancheError("invalid_response");
+      const target = new URL(value.authorization_url);
+      const transaction = target.searchParams.get("transaction");
+      const expected =
+        new URL(this.#config.baseUrl).origin +
+        "/hosted/login?transaction=" +
+        transaction;
+      if (
+        !transaction ||
+        !/^[a-f0-9]{64}$/.test(transaction) ||
+        target.href !== expected ||
+        value.authorization_url !== expected
+      )
+        throw new KancheError("invalid_response");
+      return {
+        authorization_url: value.authorization_url,
+        expires_at: value.expires_at,
+      };
+    } catch {
+      throw new KancheError("invalid_response");
+    }
+  }
+  async exchangeHosted(
+    code: string,
+    codeVerifier: string,
+    redirectUri: string,
+  ): Promise<Grant> {
+    if (
+      !/^[a-f0-9]{64}$/.test(code) ||
+      !/^[A-Za-z0-9._~-]{43,128}$/.test(codeVerifier) ||
+      typeof redirectUri !== "string"
+    )
+      throw new KancheError("invalid_handoff", 400);
+    return this.#grant(
+      await this.#call("/v1/hosted/exchanges", "POST", undefined, {
+        code,
+        code_verifier: codeVerifier,
+        redirect_uri: redirectUri,
+      }),
+    );
   }
   async verify(credential: string): Promise<Verified> {
     return this.#verified(

@@ -1,0 +1,1271 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Kanche native hosted password handoff",
+    "version": "0.1.0",
+    "description": "Required hosted profile, additive to app-owned API. Native contract, no OAuth/OIDC interoperability or cross-app SSO claim. Service routes disabled unless canonical hosted origin is configured. Body32KiB; single-use redemption; ambiguous exchange response requires explicit new login."
+  },
+  "servers": [
+    {
+      "url": "http://127.0.0.1:18080",
+      "description": "Explicit loopback development only"
+    }
+  ],
+  "paths": {
+    "/v1/hosted/transactions": {
+      "post": {
+        "operationId": "startHosted",
+        "security": [
+          {
+            "ApplicationSecret": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateHosted"
+              }
+            }
+          }
+        },
+        "responses": {
+          "400": {
+            "description": "invalid_request / invalid_redirect_uri; exact operator registration required",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                }
+              },
+              "x-request-id": {
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "invalid_application_credentials / authentication_failed",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                }
+              },
+              "x-request-id": {
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "payload_too_large",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                }
+              },
+              "x-request-id": {
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "unsupported_media_type",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                }
+              },
+              "x-request-id": {
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "rate_limited",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                }
+              },
+              "x-request-id": {
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              },
+              "Retry-After": {
+                "schema": {
+                  "type": "integer",
+                  "const": 900
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "temporarily_unavailable; preserve local state; no automatic retry",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                }
+              },
+              "x-request-id": {
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "HostedTransaction",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                }
+              },
+              "x-request-id": {
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HostedTransaction"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/hosted/exchanges": {
+      "post": {
+        "operationId": "exchangeHosted",
+        "security": [
+          {
+            "ApplicationSecret": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ExchangeHosted"
+              }
+            }
+          }
+        },
+        "responses": {
+          "400": {
+            "description": "invalid_request / invalid_handoff; wrong proof/scope must not consume a valid handoff",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                }
+              },
+              "x-request-id": {
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "invalid_application_credentials / authentication_failed",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                }
+              },
+              "x-request-id": {
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "payload_too_large",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                }
+              },
+              "x-request-id": {
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "unsupported_media_type",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                }
+              },
+              "x-request-id": {
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "rate_limited",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                }
+              },
+              "x-request-id": {
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              },
+              "Retry-After": {
+                "schema": {
+                  "type": "integer",
+                  "const": 900
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "temporarily_unavailable; preserve local state; no automatic retry",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                }
+              },
+              "x-request-id": {
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "Grant",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                }
+              },
+              "x-request-id": {
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Grant"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/hosted/login": {
+      "get": {
+        "operationId": "hostedForm",
+        "security": [],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "transaction",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            },
+            "description": "One parameter only; duplicates/unknowns reject"
+          }
+        ],
+        "responses": {
+          "400": {
+            "description": "Invalid or expired context; safe restart HTML, no untrusted redirect",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                }
+              },
+              "x-request-id": {
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              },
+              "Referrer-Policy": {
+                "schema": {
+                  "const": "same-origin"
+                }
+              },
+              "X-Content-Type-Options": {
+                "schema": {
+                  "const": "nosniff"
+                }
+              },
+              "Content-Security-Policy": {
+                "schema": {
+                  "type": "string",
+                  "description": "No scripts/assets; default-src 'none'; frame-ancestors 'none'; base-uri 'none'. Validated form/retry documents use form-action 'self' plus the exact current registered callback source/path, safely encoded. Other errors/303 may use self only."
+                }
+              }
+            },
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "invalid_application_credentials / authentication_failed",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                }
+              },
+              "x-request-id": {
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              },
+              "Referrer-Policy": {
+                "schema": {
+                  "const": "same-origin"
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "payload_too_large",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                }
+              },
+              "x-request-id": {
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              },
+              "Referrer-Policy": {
+                "schema": {
+                  "const": "same-origin"
+                }
+              },
+              "X-Content-Type-Options": {
+                "schema": {
+                  "const": "nosniff"
+                }
+              },
+              "Content-Security-Policy": {
+                "schema": {
+                  "type": "string",
+                  "description": "No scripts/assets; default-src 'none'; frame-ancestors 'none'; base-uri 'none'. Validated form/retry documents use form-action 'self' plus the exact current registered callback source/path, safely encoded. Other errors/303 may use self only."
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "unsupported_media_type",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                }
+              },
+              "x-request-id": {
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              },
+              "Referrer-Policy": {
+                "schema": {
+                  "const": "same-origin"
+                }
+              },
+              "X-Content-Type-Options": {
+                "schema": {
+                  "const": "nosniff"
+                }
+              },
+              "Content-Security-Policy": {
+                "schema": {
+                  "type": "string",
+                  "description": "No scripts/assets; default-src 'none'; frame-ancestors 'none'; base-uri 'none'. Validated form/retry documents use form-action 'self' plus the exact current registered callback source/path, safely encoded. Other errors/303 may use self only."
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "rate_limited",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                }
+              },
+              "x-request-id": {
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              },
+              "Retry-After": {
+                "schema": {
+                  "type": "integer",
+                  "const": 900
+                }
+              },
+              "Referrer-Policy": {
+                "schema": {
+                  "const": "same-origin"
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Temporarily unavailable; safe retry/restart HTML; no authentication misreport",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                }
+              },
+              "x-request-id": {
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              },
+              "Referrer-Policy": {
+                "schema": {
+                  "const": "same-origin"
+                }
+              },
+              "X-Content-Type-Options": {
+                "schema": {
+                  "const": "nosniff"
+                }
+              },
+              "Content-Security-Policy": {
+                "schema": {
+                  "type": "string",
+                  "description": "No scripts/assets; default-src 'none'; frame-ancestors 'none'; base-uri 'none'. Validated form/retry documents use form-action 'self' plus the exact current registered callback source/path, safely encoded. Other errors/303 may use self only."
+                }
+              }
+            },
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "Browser-bound no-script password form; validated hidden transaction/CSRF only, no account reflection",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                }
+              },
+              "x-request-id": {
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              },
+              "Referrer-Policy": {
+                "schema": {
+                  "const": "same-origin"
+                }
+              },
+              "X-Content-Type-Options": {
+                "schema": {
+                  "const": "nosniff"
+                }
+              },
+              "Content-Security-Policy": {
+                "schema": {
+                  "type": "string",
+                  "description": "No scripts/assets; default-src 'none'; frame-ancestors 'none'; base-uri 'none'. Validated form/retry documents use form-action 'self' plus the exact current registered callback source/path, safely encoded. Other errors/303 may use self only."
+                }
+              }
+            },
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Invalid browser nonce, CSRF or Origin; safe restart HTML",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                }
+              },
+              "x-request-id": {
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              },
+              "Referrer-Policy": {
+                "schema": {
+                  "const": "same-origin"
+                }
+              },
+              "X-Content-Type-Options": {
+                "schema": {
+                  "const": "nosniff"
+                }
+              },
+              "Content-Security-Policy": {
+                "schema": {
+                  "type": "string",
+                  "description": "No scripts/assets; default-src 'none'; frame-ancestors 'none'; base-uri 'none'. Validated form/retry documents use form-action 'self' plus the exact current registered callback source/path, safely encoded. Other errors/303 may use self only."
+                }
+              }
+            },
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "hostedPassword",
+        "security": [],
+        "description": "Exact configured Origin, host-only anonymous browser cookie and transaction-bound CSRF required. Invalid browser contexts never redirect to untrusted destinations.",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Origin",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uri"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/HostedPassword"
+              }
+            }
+          }
+        },
+        "responses": {
+          "400": {
+            "description": "Invalid or expired context; safe restart HTML, no untrusted redirect",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                }
+              },
+              "x-request-id": {
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              },
+              "Referrer-Policy": {
+                "schema": {
+                  "const": "same-origin"
+                }
+              },
+              "X-Content-Type-Options": {
+                "schema": {
+                  "const": "nosniff"
+                }
+              },
+              "Content-Security-Policy": {
+                "schema": {
+                  "type": "string",
+                  "description": "No scripts/assets; default-src 'none'; frame-ancestors 'none'; base-uri 'none'. Validated form/retry documents use form-action 'self' plus the exact current registered callback source/path, safely encoded. Other errors/303 may use self only."
+                }
+              }
+            },
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Generic failed authentication with safe retry form",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                }
+              },
+              "x-request-id": {
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              },
+              "Referrer-Policy": {
+                "schema": {
+                  "const": "same-origin"
+                }
+              },
+              "X-Content-Type-Options": {
+                "schema": {
+                  "const": "nosniff"
+                }
+              },
+              "Content-Security-Policy": {
+                "schema": {
+                  "type": "string",
+                  "description": "No scripts/assets; default-src 'none'; frame-ancestors 'none'; base-uri 'none'. Validated form/retry documents use form-action 'self' plus the exact current registered callback source/path, safely encoded. Other errors/303 may use self only."
+                }
+              }
+            },
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "payload_too_large",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                }
+              },
+              "x-request-id": {
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              },
+              "Referrer-Policy": {
+                "schema": {
+                  "const": "same-origin"
+                }
+              },
+              "X-Content-Type-Options": {
+                "schema": {
+                  "const": "nosniff"
+                }
+              },
+              "Content-Security-Policy": {
+                "schema": {
+                  "type": "string",
+                  "description": "No scripts/assets; default-src 'none'; frame-ancestors 'none'; base-uri 'none'. Validated form/retry documents use form-action 'self' plus the exact current registered callback source/path, safely encoded. Other errors/303 may use self only."
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "unsupported_media_type",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                }
+              },
+              "x-request-id": {
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              },
+              "Referrer-Policy": {
+                "schema": {
+                  "const": "same-origin"
+                }
+              },
+              "X-Content-Type-Options": {
+                "schema": {
+                  "const": "nosniff"
+                }
+              },
+              "Content-Security-Policy": {
+                "schema": {
+                  "type": "string",
+                  "description": "No scripts/assets; default-src 'none'; frame-ancestors 'none'; base-uri 'none'. Validated form/retry documents use form-action 'self' plus the exact current registered callback source/path, safely encoded. Other errors/303 may use self only."
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited safe retry form",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                }
+              },
+              "x-request-id": {
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              },
+              "Referrer-Policy": {
+                "schema": {
+                  "const": "same-origin"
+                }
+              },
+              "X-Content-Type-Options": {
+                "schema": {
+                  "const": "nosniff"
+                }
+              },
+              "Content-Security-Policy": {
+                "schema": {
+                  "type": "string",
+                  "description": "No scripts/assets; default-src 'none'; frame-ancestors 'none'; base-uri 'none'. Validated form/retry documents use form-action 'self' plus the exact current registered callback source/path, safely encoded. Other errors/303 may use self only."
+                }
+              },
+              "Retry-After": {
+                "schema": {
+                  "type": "integer",
+                  "const": 900
+                }
+              }
+            },
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Temporarily unavailable; safe retry/restart HTML; no authentication misreport",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                }
+              },
+              "x-request-id": {
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              },
+              "Referrer-Policy": {
+                "schema": {
+                  "const": "same-origin"
+                }
+              },
+              "X-Content-Type-Options": {
+                "schema": {
+                  "const": "nosniff"
+                }
+              },
+              "Content-Security-Policy": {
+                "schema": {
+                  "type": "string",
+                  "description": "No scripts/assets; default-src 'none'; frame-ancestors 'none'; base-uri 'none'. Validated form/retry documents use form-action 'self' plus the exact current registered callback source/path, safely encoded. Other errors/303 may use self only."
+                }
+              }
+            },
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "303": {
+            "description": "Password success creates handoff only, no app session; Location exact callback + code/state. Never307/308.",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                }
+              },
+              "x-request-id": {
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              },
+              "Referrer-Policy": {
+                "schema": {
+                  "const": "no-referrer"
+                }
+              },
+              "X-Content-Type-Options": {
+                "schema": {
+                  "const": "nosniff"
+                }
+              },
+              "Content-Security-Policy": {
+                "schema": {
+                  "type": "string",
+                  "description": "No scripts/assets; default-src 'none'; frame-ancestors 'none'; base-uri 'none'. Validated form/retry documents use form-action 'self' plus the exact current registered callback source/path, safely encoded. Other errors/303 may use self only."
+                }
+              },
+              "Location": {
+                "schema": {
+                  "type": "string",
+                  "format": "uri"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Invalid browser nonce, CSRF or Origin; safe restart HTML",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                }
+              },
+              "x-request-id": {
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              },
+              "Referrer-Policy": {
+                "schema": {
+                  "const": "same-origin"
+                }
+              },
+              "X-Content-Type-Options": {
+                "schema": {
+                  "const": "nosniff"
+                }
+              },
+              "Content-Security-Policy": {
+                "schema": {
+                  "type": "string",
+                  "description": "No scripts/assets; default-src 'none'; frame-ancestors 'none'; base-uri 'none'. Validated form/retry documents use form-action 'self' plus the exact current registered callback source/path, safely encoded. Other errors/303 may use self only."
+                }
+              }
+            },
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "User": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "tenant_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "application_id": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": ["id", "tenant_id", "application_id"]
+      },
+      "Session": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "format": {
+            "type": "string",
+            "const": "opaque"
+          },
+          "idle_expires_at": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Exclusive Unix seconds idle deadline"
+          },
+          "absolute_expires_at": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Exclusive Unix seconds maximum lifetime deadline"
+          }
+        },
+        "required": ["format", "idle_expires_at", "absolute_expires_at"]
+      },
+      "Problem": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "type": {
+            "type": "string",
+            "const": "about:blank"
+          },
+          "title": {
+            "type": "string"
+          },
+          "status": {
+            "type": "integer"
+          },
+          "code": {
+            "type": "string"
+          },
+          "request_id": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "required": ["type", "title", "status", "code", "request_id"]
+      },
+      "IssuedSession": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "format": {
+            "type": "string",
+            "const": "opaque"
+          },
+          "idle_expires_at": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Exclusive Unix seconds idle deadline"
+          },
+          "absolute_expires_at": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Exclusive Unix seconds maximum lifetime deadline"
+          },
+          "credential": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$",
+            "description": "Server-only bearer; never render or log"
+          }
+        },
+        "required": [
+          "format",
+          "idle_expires_at",
+          "absolute_expires_at",
+          "credential"
+        ]
+      },
+      "Grant": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "user": {
+            "$ref": "#/components/schemas/User"
+          },
+          "session": {
+            "$ref": "#/components/schemas/IssuedSession"
+          }
+        },
+        "required": ["user", "session"]
+      },
+      "CreateHosted": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "redirect_uri": {
+            "type": "string",
+            "format": "uri",
+            "maxLength": 2048,
+            "description": "Exact operator-registered callback; no query, fragment, userinfo or noncanonical encoding. HTTPS except explicitly registered loopback development."
+          },
+          "state": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "code_challenge": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_-]{43}$"
+          },
+          "code_challenge_method": {
+            "type": "string",
+            "const": "S256"
+          }
+        },
+        "required": [
+          "redirect_uri",
+          "state",
+          "code_challenge",
+          "code_challenge_method"
+        ]
+      },
+      "HostedTransaction": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "authorization_url": {
+            "type": "string",
+            "format": "uri",
+            "description": "Canonical hosted origin /hosted/login with one transaction parameter, never an app secret/session credential"
+          },
+          "expires_at": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Exclusive DB Unix-second deadline; five-minute lifetime"
+          }
+        },
+        "required": ["authorization_url", "expires_at"]
+      },
+      "ExchangeHosted": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "code_verifier": {
+            "type": "string",
+            "minLength": 43,
+            "maxLength": 128,
+            "pattern": "^[A-Za-z0-9._~-]+$",
+            "writeOnly": true
+          },
+          "redirect_uri": {
+            "type": "string",
+            "format": "uri",
+            "maxLength": 2048,
+            "description": "Exact operator-registered callback; no query, fragment, userinfo or noncanonical encoding. HTTPS except explicitly registered loopback development."
+          }
+        },
+        "required": ["code", "code_verifier", "redirect_uri"]
+      },
+      "HostedPassword": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "transaction": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "csrf_token": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "email": {
+            "type": "string",
+            "maxLength": 254
+          },
+          "password": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128,
+            "writeOnly": true,
+            "description": "UTF-8 byte ceiling128; never silently normalized/truncated"
+          }
+        },
+        "required": ["transaction", "csrf_token", "email", "password"]
+      }
+    },
+    "securitySchemes": {
+      "ApplicationSecret": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "App authority, separate from session credential"
+      }
+    }
+  }
+}
