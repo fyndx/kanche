@@ -5,7 +5,8 @@ The reviewed [contract/lifecycle](../architecture/0003-app-owned-login.md) and
 [OpenAPI 3.1 specification](app-owned.openapi.json) define the first profile.
 This slice accepts provisioned verified synthetic accounts. Signup, invitations,
 email verification, password recovery, sign out everywhere, JWT and organizations
-are not delivered. **Hosted login is the next required profile.**
+are not delivered. The required [hosted profile](hosted-integration.md) complements
+this first app-owned profile using the same online sessions.
 
 ## Fresh authorized checkout
 
@@ -32,7 +33,7 @@ with sibling directory names `kanche` and `kanche-auth-research`:
 ```sh
 cd ../kanche-auth-research/kanche-demo
 npm ci
-npx playwright install chromium
+npx playwright install chromium --only-shell
 npm run build
 npm run typecheck
 npm run evidence

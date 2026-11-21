@@ -5,7 +5,8 @@ integration and explicit tenant and application boundaries. The current service
 provides the health foundation and the first app-owned password-login slice with
 PostgreSQL, a TypeScript server SDK and Next.js adapter. See the
 [working integration/setup contract](docs/contracts/app-owned-integration.md).
-Organizations, signup/recovery, hosted login and console APIs remain undelivered.
+The [hosted login profile](docs/contracts/hosted-integration.md) uses the same
+app-bound sessions. Organizations, signup/recovery and console APIs remain undelivered.
 
 - [Product features and flows](Features.md)
 - [Planning and design gates](docs/architecture/v1-roadmap.md)

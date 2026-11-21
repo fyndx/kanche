@@ -9,14 +9,16 @@ means verified repository behavior. **Planned** means unshipped delivery work.
 
 The service implements the first app-owned provisioned-password login and online
 session slice. See the [concrete integration guide](../contracts/app-owned-integration.md).
-Hosted login is required next; organizations and console remain unimplemented. See the
+The [hosted profile](../contracts/hosted-integration.md) adds a Kanche-owned password
+page and a one-use server handoff with the same app-bound policy. Organizations
+and console remain unimplemented. See the
 [product direction](../architecture/0002-product-direction.md),
 [design gates](../architecture/v1-roadmap.md), and [feature index](../../Features.md).
 
 ## First integration contract
 
-**Status:** App-owned prerequisites completed under delegated approved defaults;
-[KN-2](https://fyndx.atlassian.net/browse/KN-2) retains the hosted-profile follow-up.
+**Status:** App-owned and [hosted transaction prerequisites](../architecture/0004-hosted-login.md)
+completed under delegated approved defaults in [KN-2](https://fyndx.atlassian.net/browse/KN-2).
 
 Define Kanche's native developer configuration, browser and server
 responsibilities, origins, redirects, errors, and supported integration path

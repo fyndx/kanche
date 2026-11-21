@@ -47,6 +47,8 @@ Billing, configurable connections, and dedicated hosting remain deferred.
 The app-owned KN-2 and KN-6 engineering prerequisites are completed in the
 [concrete contract and lifecycle](0003-app-owned-login.md), within the latest
 user-approved defaults recorded in Confluence. The first login slice implements
-that bounded profile. Hosted login is required next; its redirect transaction
-detail, future JWT purpose/timing, and KN-11 remain open. Repository boilerplate
+that bounded profile. The required [hosted redirect contract](0004-hosted-login.md)
+completes its separate callback/state/PKCE transaction prerequisite; the
+[hosted integration](../contracts/hosted-integration.md) preserves the same app-bound
+policy. Future JWT purpose/timing and KN-11 remain open. Repository boilerplate
 and passing local checks do not prove production readiness.
