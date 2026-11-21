@@ -16,6 +16,7 @@ const allowed = new Set([
   "CC-BY-4.0",
   "BlueOak-1.0.0",
   "Python-2.0",
+  "PSF-2.0", // argparse (OpenAPI validator): PSF notice and changes-summary terms reviewed.
   "(MIT OR CC0-1.0)",
   "(MIT AND Zlib)",
   "(Apache-2.0 OR MIT)",
@@ -28,6 +29,25 @@ for (const file of ["package-lock.json"]) {
         pkg.license,
         "MPL-2.0",
         `${file}: root package license must be MPL-2.0`,
+      );
+      continue;
+    }
+    if (pkg.link) {
+      const workspace = lock.packages[pkg.resolved];
+      assert.ok(
+        workspace?.license === "MPL-2.0" &&
+          JSON.parse(readFileSync(`${pkg.resolved}/package.json`, "utf8"))
+            .private === true,
+        `${file}: invalid internal workspace ${name}`,
+      );
+      continue;
+    }
+    if (name.startsWith("packages/")) {
+      assert.ok(
+        pkg.license === "MPL-2.0" &&
+          JSON.parse(readFileSync(`${name}/package.json`, "utf8")).private ===
+            true,
+        `${file}: invalid internal package ${name}`,
       );
       continue;
     }

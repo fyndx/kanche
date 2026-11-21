@@ -2,14 +2,15 @@
 
 .DEFAULT_GOAL := help
 
-.PHONY: help tools setup dev fmt lint test test-rust check security
+.PHONY: help tools setup dev fmt lint test test-rust test-integration test-sdk check security
 
 help:
 	@echo 'make setup        Verify tool versions and install locked dependencies'
-	@echo 'make dev          Run the Rust health service'
+	@echo 'make dev          Run Kanche (health-only without database config)'
 	@echo 'make fmt          Format Rust, JavaScript, configuration, and docs'
 	@echo 'make lint         Check formatting, Clippy, JavaScript, and docs'
 	@echo 'make test         Run Rust tests and process smoke checks'
+	@echo 'make test-integration Run disposable PostgreSQL security invariants (Docker)'
 	@echo 'make check        Run the same quality checks as CI'
 	@echo 'make security     Scan secrets, advisories, and dependency licenses'
 
@@ -39,7 +40,15 @@ test-rust:
 	cargo build --locked
 	python3 scripts/smoke-server.py
 
-test: test-rust
+test-integration:
+	python3 scripts/test-integration.py
+
+test-sdk:
+	npm run typecheck
+	npm run test:sdk
+	node scripts/check-contract.mjs
+
+test: test-rust test-sdk test-integration
 
 check: lint test
 	cargo doc --locked --no-deps
