@@ -13,6 +13,7 @@ unsafe_code = "forbid"
 [dependencies]
 argon2 = "0.5"
 axum = "0.8"
+base64 = "0.22"
 hex = "0.4.3"
 rand = "0.8"
 serde = { version = "1.0.229", features = ["derive"] }
@@ -28,6 +29,7 @@ tokio = { version = "1", features = [
 tokio-postgres = "0.7.18"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["json"] }
+url = "2.5"
 uuid = { version = "1", features = ["v4"] }
 
 [dev-dependencies]

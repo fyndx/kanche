@@ -39,6 +39,7 @@ async fn observe(request: Request, next: Next) -> Response {
         .extensions()
         .get::<MatchedPath>()
         .map_or("unmatched", MatchedPath::as_str);
+    let hosted_page = route == "/hosted/login";
     let span = tracing::info_span!("http_request", %request_id, route);
     async move {
         let started = Instant::now();
@@ -46,8 +47,16 @@ async fn observe(request: Request, next: Next) -> Response {
             tokio::time::timeout(std::time::Duration::from_secs(8), next.run(request))
                 .await
                 .unwrap_or_else(|_| axum::http::StatusCode::SERVICE_UNAVAILABLE.into_response());
-        if response.status().is_client_error() || response.status().is_server_error() {
+        if (response.status().is_client_error() || response.status().is_server_error())
+            && response
+                .extensions()
+                .get::<identity::SafeHostedHtml>()
+                .is_none()
+        {
             response = problem(response, &request_id);
+        }
+        if hosted_page {
+            identity::hosted_headers(&mut response);
         }
         response
             .headers_mut()

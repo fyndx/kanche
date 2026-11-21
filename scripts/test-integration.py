@@ -21,6 +21,7 @@ try:
     else:
         raise RuntimeError('Disposable PostgreSQL did not become ready')
     env = dict(os.environ, KANCHE_TEST_DATABASE_URL=f'postgres://postgres@127.0.0.1:{port}/postgres')
-    subprocess.run(['cargo', 'test', '--locked', '--test', 'identity', '--', '--ignored', '--nocapture'], env=env, check=True)
+    for target in ['identity', 'hosted']:
+        subprocess.run(['cargo', 'test', '--locked', '--test', target, '--', '--ignored', '--nocapture'], env=env, check=True)
 finally:
     subprocess.run(['docker', 'stop', name], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)

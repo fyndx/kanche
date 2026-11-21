@@ -9,9 +9,9 @@ use axum::{
 };
 #[derive(Clone)]
 pub struct Code(pub &'static str);
-fn error(code: Failure) -> Response {
+pub(crate) fn error(code: Failure) -> Response {
     let status = match code {
-        "invalid_request" => StatusCode::BAD_REQUEST,
+        "invalid_request" | "invalid_redirect_uri" | "invalid_handoff" => StatusCode::BAD_REQUEST,
         "authentication_failed" | "invalid_application_credentials" | "unauthenticated" => {
             StatusCode::UNAUTHORIZED
         }
@@ -22,7 +22,7 @@ fn error(code: Failure) -> Response {
     r.extensions_mut().insert(Code(code));
     r
 }
-fn key(headers: &HeaderMap) -> &str {
+pub(crate) fn key(headers: &HeaderMap) -> &str {
     headers
         .get("authorization")
         .and_then(|x| x.to_str().ok())
@@ -37,6 +37,11 @@ fn credential(headers: &HeaderMap) -> &str {
         .unwrap_or("")
 }
 pub fn routes(store: Store) -> Router {
+    let hosted = if store.hosted_enabled() {
+        crate::identity::hosted_routes(store.clone())
+    } else {
+        Router::new()
+    };
     Router::new()
         .route("/v1/application", get(application))
         .route("/v1/auth/sign-ins", post(sign_in))
@@ -45,6 +50,7 @@ pub fn routes(store: Store) -> Router {
         .route("/v1/sessions/current/revoke", post(revoke))
         .layer(DefaultBodyLimit::max(32768))
         .with_state(store)
+        .merge(hosted)
 }
 async fn application(State(s): State<Store>, h: HeaderMap) -> Response {
     match s.application(key(&h)).await {

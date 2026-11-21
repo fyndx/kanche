@@ -23,7 +23,7 @@ async fn main() -> ExitCode {
         Err(error) => {
             if error.kind() == std::io::ErrorKind::InvalidInput {
                 tracing::error!(
-                    "Database configuration invalid; use KANCHE_DATABASE_URL with an explicit loopback PostgreSQL IP; remote TLS profile is not delivered"
+                    "Authentication configuration invalid; KANCHE_DATABASE_URL needs an explicit loopback PostgreSQL IP; optional KANCHE_HOSTED_ORIGIN needs a canonical HTTPS or loopback HTTP origin"
                 );
             } else {
                 tracing::error!(kind = ?error.kind(), "Server failed; check bind address, port availability, and OS permissions");
@@ -71,6 +71,18 @@ async fn run(config: Config) -> std::io::Result<()> {
             return Err(std::io::Error::new(
                 std::io::ErrorKind::InvalidInput,
                 "Invalid database configuration",
+            ));
+        }
+    };
+    let store = match (store, std::env::var("KANCHE_HOSTED_ORIGIN")) {
+        (Some(store), Ok(origin)) => Some(store.with_hosted_origin(&origin).map_err(|_| {
+            std::io::Error::new(std::io::ErrorKind::InvalidInput, "Invalid hosted origin")
+        })?),
+        (store, Err(std::env::VarError::NotPresent)) => store,
+        _ => {
+            return Err(std::io::Error::new(
+                std::io::ErrorKind::InvalidInput,
+                "Hosted login requires database configuration and a canonical origin",
             ));
         }
     };

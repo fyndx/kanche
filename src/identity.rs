@@ -7,7 +7,11 @@ use rand::{RngCore, rngs::OsRng};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::{sync::Arc, time::Duration};
-use tokio::sync::Semaphore;
+use tokio::sync::{OwnedSemaphorePermit, Semaphore};
+
+mod hosted;
+pub use hosted::{HostedExchange, HostedRegistration, HostedTransaction};
+pub(crate) use hosted::{SafeHostedHtml, routes as hosted_routes, safe_headers as hosted_headers};
 use tokio_postgres::{Client, NoTls, Transaction, config::Host};
 
 fn db_error(error: tokio_postgres::Error) -> Failure {
@@ -57,6 +61,7 @@ pub struct Store {
     config: tokio_postgres::Config,
     dummy: Arc<String>,
     admission: Arc<Semaphore>,
+    hosted: Option<Arc<hosted::HostedConfig>>,
 }
 impl Store {
     pub fn new(url: &str) -> Result<Self, Failure> {
@@ -69,6 +74,7 @@ impl Store {
             config,
             dummy: Arc::new(password_hash(&secret())?),
             admission: Arc::new(Semaphore::new(8)),
+            hosted: None,
         })
     }
     pub async fn connect(&self) -> Result<Client, Failure> {
@@ -109,24 +115,34 @@ impl Store {
         )
         .await
         .map_err(|_| "migration_failed")?;
-        let sql = include_str!("../migrations/0001_app_login.sql");
-        let checksum = digest(sql);
-        match tx
-            .query_opt("SELECT digest FROM kanche_migrations WHERE version=1", &[])
-            .await
-            .map_err(|_| "migration_failed")?
-        {
-            Some(row) if row.get::<_, String>(0) != checksum => {
-                return Err("migration_checksum_mismatch");
-            }
-            Some(_) => {}
-            None => {
-                tx.batch_execute(sql)
+        for (version, sql) in [
+            (1, include_str!("../migrations/0001_app_login.sql")),
+            (2, include_str!("../migrations/0002_hosted_login.sql")),
+        ] {
+            let checksum = digest(sql);
+            match tx
+                .query_opt(
+                    "SELECT digest FROM kanche_migrations WHERE version=$1",
+                    &[&version],
+                )
+                .await
+                .map_err(|_| "migration_failed")?
+            {
+                Some(row) if row.get::<_, String>(0) != checksum => {
+                    return Err("migration_checksum_mismatch");
+                }
+                Some(_) => {}
+                None => {
+                    tx.batch_execute(sql)
+                        .await
+                        .map_err(|_| "migration_failed")?;
+                    tx.execute(
+                        "INSERT INTO kanche_migrations VALUES($1,$2)",
+                        &[&version, &checksum],
+                    )
                     .await
                     .map_err(|_| "migration_failed")?;
-                tx.execute("INSERT INTO kanche_migrations VALUES(1,$1)", &[&checksum])
-                    .await
-                    .map_err(|_| "migration_failed")?;
+                }
             }
         }
         tx.commit().await.map_err(|_| "migration_failed")
@@ -156,91 +172,79 @@ impl Store {
         let mut c = self.connect().await?;
         let tx = Self::begin(&mut c).await?;
         let s = Self::scope(&tx, key).await?;
+        let mut features = vec!["password_login", "opaque_sessions"];
+        if self.hosted.is_some() {
+            features.push("hosted_login");
+        }
         Ok(
-            serde_json::json!({"tenant_id":s.tenant,"application_id":s.app,"api_version":"v1","features":["password_login","opaque_sessions"]}),
+            serde_json::json!({"tenant_id":s.tenant,"application_id":s.app,"api_version":"v1","features":features}),
         )
     }
     pub async fn sign_in(&self, key: &str, input: SignIn) -> Result<serde_json::Value, Failure> {
-        let _permit = self
+        let permit = self
             .admission
-            .try_acquire()
+            .clone()
+            .try_acquire_owned()
             .map_err(|_| "temporarily_unavailable")?;
-        let address = email(&input.email)?;
-        if input.password.is_empty() || input.password.len() > 128 {
-            return Err("invalid_request");
-        }
-        let mut c = self.connect().await?;
-        let tx = Self::begin(&mut c).await?;
-        let s = Self::scope(&tx, key).await?;
-        let now = now(&tx).await?;
-        for (bucket, window, limit) in [
-            (format!("app:{}", s.app), 60, 30),
-            (format!("account:{}:{}", s.app, digest(&address)), 900, 5),
-        ] {
-            let attempts: i32 = tx
-                .query_one(
-                    "
-            INSERT INTO abuse_buckets VALUES($1,$2,1) ON CONFLICT(bucket) DO UPDATE SET
-            attempts=CASE WHEN abuse_buckets.expires_at <= $3 THEN 1 ELSE
-            abuse_buckets.attempts+1 END, expires_at=CASE WHEN abuse_buckets.expires_at
-            <= $3 THEN $2 ELSE abuse_buckets.expires_at END RETURNING attempts
-        ",
-                    &[&bucket, &(now + window), &now],
-                )
-                .await
-                .map_err(db_error)?
-                .get(0);
-            if attempts > limit {
+        validate_password_input(&input)?;
+        let mut client = self.connect().await?;
+        let tx = Self::begin(&mut client).await?;
+        let scope = Self::scope(&tx, key).await?;
+        let prepared = match self.prepare_password(&tx, &scope, input).await {
+            Ok(prepared) => prepared,
+            Err(error @ "rate_limited") => {
                 tx.commit().await.map_err(db_error)?;
-                return Err("rate_limited");
+                return Err(error);
             }
-        }
-        let row=tx.query_opt("SELECT id,password_hash,active,verified FROM users WHERE tenant_id=$1 AND email=$2",&[&s.tenant,&address]).await.map_err(db_error)?;
-        let hash = row
-            .as_ref()
-            .map_or_else(|| self.dummy.as_ref().clone(), |r| r.get::<_, String>(1));
-        let valid = tokio::task::spawn_blocking(move || {
-            PasswordHash::new(&hash).is_ok_and(|h| {
-                argon()
-                    .verify_password(input.password.as_bytes(), &h)
-                    .is_ok()
-            })
-        })
-        .await
-        .map_err(|_| "temporarily_unavailable")?;
-        let Some(row) = row else {
-            tx.commit().await.map_err(db_error)?;
-            return Err("authentication_failed");
+            Err(error) => return Err(error),
         };
-        let user: String = row.get(0);
-        if !valid
-            || !row.get::<_, bool>(2)
-            || !row.get::<_, bool>(3)
-            || !eligible(&tx, &s, &user).await?
-        {
-            tx.commit().await.map_err(db_error)?;
+        // Admission is durable even if the caller disconnects during password work.
+        tx.commit().await.map_err(db_error)?;
+        let proof = prepared.verify(permit).await?;
+        let tx = Self::begin(&mut client).await?;
+        let final_scope = Self::scope(&tx, key).await?;
+        if final_scope.tenant != scope.tenant || final_scope.app != scope.app {
+            return Err("invalid_application_credentials");
+        }
+        if !valid_proof(&tx, &final_scope, &proof).await? {
             return Err("authentication_failed");
         }
-        let credential = secret();
-        let idle = now + 86400;
-        let absolute = now + 604800;
-        tx.execute(
-            "INSERT INTO sessions VALUES($1,$2,$3,$4,$5,$6,false)",
-            &[
-                &digest(&credential),
-                &s.tenant,
-                &s.app,
-                &user,
-                &idle,
-                &absolute,
-            ],
-        )
-        .await
-        .map_err(db_error)?;
+        let result = issue(&tx, &final_scope, &proof.user).await?;
         tx.commit().await.map_err(db_error)?;
-        let mut result = view(&s, &user, idle, absolute);
-        result["session"]["credential"] = credential.into();
         Ok(result)
+    }
+    async fn prepare_password(
+        &self,
+        tx: &Transaction<'_>,
+        scope: &Scope,
+        input: SignIn,
+    ) -> Result<PreparedPassword, Failure> {
+        let address = validate_password_input(&input)?;
+        let timestamp = now(tx).await?;
+        for (bucket, window, limit) in [
+            (format!("app:{}", scope.app), 60, 30),
+            (
+                format!("account:{}:{}", scope.app, digest(&address)),
+                900,
+                5,
+            ),
+        ] {
+            rate(tx, &bucket, timestamp, window, limit).await?;
+        }
+        let row = tx
+            .query_opt(
+                "SELECT id,password_hash FROM users WHERE tenant_id=$1 AND email=$2",
+                &[&scope.tenant, &address],
+            )
+            .await
+            .map_err(db_error)?;
+        Ok(PreparedPassword {
+            user: row.as_ref().map(|r| r.get(0)),
+            hash: row
+                .as_ref()
+                .map_or_else(|| self.dummy.as_ref().clone(), |r| r.get(1)),
+            password: input.password,
+        })
     }
     pub async fn session(
         &self,
@@ -295,6 +299,113 @@ impl Store {
         tx.commit().await.map_err(db_error)?;
         Ok(view(&s, &user, idle, absolute))
     }
+}
+fn validate_password_input(input: &SignIn) -> Result<String, Failure> {
+    let address = email(&input.email)?;
+    if input.password.is_empty() || input.password.len() > 128 {
+        return Err("invalid_request");
+    }
+    Ok(address)
+}
+struct PreparedPassword {
+    user: Option<String>,
+    hash: String,
+    password: String,
+}
+struct PasswordProof {
+    user: String,
+    hash_digest: String,
+}
+impl PreparedPassword {
+    async fn verify(self, permit: OwnedSemaphorePermit) -> Result<PasswordProof, Failure> {
+        let expected = digest(&self.hash);
+        let valid = password_work(permit, move || {
+            PasswordHash::new(&self.hash).is_ok_and(|h| {
+                argon()
+                    .verify_password(self.password.as_bytes(), &h)
+                    .is_ok()
+            })
+        })
+        .await?;
+        match (valid, self.user) {
+            (true, Some(user)) => Ok(PasswordProof {
+                user,
+                hash_digest: expected,
+            }),
+            _ => Err("authentication_failed"),
+        }
+    }
+}
+async fn valid_proof(
+    tx: &Transaction<'_>,
+    scope: &Scope,
+    proof: &PasswordProof,
+) -> Result<bool, Failure> {
+    let row = tx
+        .query_opt(
+            "SELECT password_hash FROM users WHERE tenant_id=$1 AND id=$2 AND active AND verified",
+            &[&scope.tenant, &proof.user],
+        )
+        .await
+        .map_err(db_error)?;
+    let Some(row) = row else { return Ok(false) };
+    Ok(digest(&row.get::<_, String>(0)) == proof.hash_digest
+        && eligible(tx, scope, &proof.user).await?)
+}
+async fn password_work<F>(permit: OwnedSemaphorePermit, work: F) -> Result<bool, Failure>
+where
+    F: FnOnce() -> bool + Send + 'static,
+{
+    tokio::task::spawn_blocking(move || {
+        let _permit = permit;
+        work()
+    })
+    .await
+    .map_err(|_| "temporarily_unavailable")
+}
+async fn rate(
+    tx: &Transaction<'_>,
+    bucket: &str,
+    timestamp: i64,
+    window: i64,
+    limit: i32,
+) -> Result<(), Failure> {
+    let attempts:i32=tx.query_one(
+        "INSERT INTO abuse_buckets VALUES($1,$2,1) ON CONFLICT(bucket) DO UPDATE SET
+         attempts=CASE WHEN abuse_buckets.expires_at <= $3 THEN 1 ELSE abuse_buckets.attempts+1 END,
+         expires_at=CASE WHEN abuse_buckets.expires_at <= $3 THEN $2 ELSE abuse_buckets.expires_at END
+         RETURNING attempts",&[&bucket,&(timestamp+window),&timestamp]).await.map_err(db_error)?.get(0);
+    if attempts > limit {
+        Err("rate_limited")
+    } else {
+        Ok(())
+    }
+}
+async fn issue(
+    tx: &Transaction<'_>,
+    scope: &Scope,
+    user: &str,
+) -> Result<serde_json::Value, Failure> {
+    let timestamp = now(tx).await?;
+    let credential = secret();
+    let idle = timestamp + 86400;
+    let absolute = timestamp + 604800;
+    tx.execute(
+        "INSERT INTO sessions VALUES($1,$2,$3,$4,$5,$6,false)",
+        &[
+            &digest(&credential),
+            &scope.tenant,
+            &scope.app,
+            &user,
+            &idle,
+            &absolute,
+        ],
+    )
+    .await
+    .map_err(db_error)?;
+    let mut result = view(scope, user, idle, absolute);
+    result["session"]["credential"] = credential.into();
+    Ok(result)
 }
 pub struct Scope {
     pub tenant: String,
@@ -445,16 +556,21 @@ impl Store {
             "cleanup" => {
                 let now = now(&tx).await?;
                 tx.execute("DELETE FROM sessions WHERE revoked OR idle_expires_at<=$1 OR absolute_expires_at<=$1",&[&now]).await.map_err(|_|"maintenance_failed")?;
+                tx.execute("DELETE FROM hosted_transactions WHERE expires_at<=$1 OR consumed OR invalidated OR code_expires_at<=$1", &[&now]).await.map_err(|_|"maintenance_failed")?;
                 tx.execute("DELETE FROM abuse_buckets WHERE expires_at<=$1", &[&now])
                     .await
                     .map_err(|_| "maintenance_failed")?;
             }
             "revoke-all" => {
+                tx.execute("UPDATE hosted_transactions SET invalidated=true", &[])
+                    .await
+                    .map_err(|_| "maintenance_failed")?;
                 tx.execute("UPDATE sessions SET revoked=true", &[])
                     .await
                     .map_err(|_| "maintenance_failed")?;
             }
             "remove-enrollment" => {
+                tx.execute("UPDATE hosted_transactions SET invalidated=true WHERE app_id=$1 AND user_id=$2", &[&app,&user]).await.map_err(|_|"maintenance_failed")?;
                 tx.execute(
                     "UPDATE enrollments SET active=false WHERE app_id=$1 AND user_id=$2",
                     &[&app, &user],
@@ -469,6 +585,12 @@ impl Store {
                 .map_err(|_| "maintenance_failed")?;
             }
             "disable-user" => {
+                tx.execute(
+                    "UPDATE hosted_transactions SET invalidated=true WHERE user_id=$1",
+                    &[&user],
+                )
+                .await
+                .map_err(|_| "maintenance_failed")?;
                 tx.execute("UPDATE users SET active=false WHERE id=$1", &[&user])
                     .await
                     .map_err(|_| "maintenance_failed")?;
@@ -480,6 +602,12 @@ impl Store {
                 .map_err(|_| "maintenance_failed")?;
             }
             "disable-app" => {
+                tx.execute(
+                    "UPDATE hosted_transactions SET invalidated=true WHERE app_id=$1",
+                    &[&app],
+                )
+                .await
+                .map_err(|_| "maintenance_failed")?;
                 tx.execute("UPDATE applications SET active=false WHERE id=$1", &[&app])
                     .await
                     .map_err(|_| "maintenance_failed")?;
@@ -498,5 +626,32 @@ impl Store {
             _ => return Err("unsupported_operator_command"),
         }
         tx.commit().await.map_err(|_| "maintenance_failed")
+    }
+}
+
+#[cfg(test)]
+mod cancellation_tests {
+    use super::*;
+    #[tokio::test]
+    async fn cancelled_password_request_keeps_hash_admission_until_worker_finishes() {
+        let admission = Arc::new(Semaphore::new(1));
+        let permit = admission.clone().try_acquire_owned().unwrap();
+        let (started_tx, started_rx) = tokio::sync::oneshot::channel();
+        let (release_tx, release_rx) = std::sync::mpsc::channel();
+        let task = tokio::spawn(password_work(permit, move || {
+            let _ = started_tx.send(());
+            release_rx.recv().unwrap();
+            true
+        }));
+        started_rx.await.unwrap();
+        task.abort();
+        let _ = task.await;
+        assert!(admission.clone().try_acquire_owned().is_err());
+        release_tx.send(()).unwrap();
+        assert!(
+            tokio::time::timeout(Duration::from_secs(2), admission.acquire())
+                .await
+                .is_ok()
+        );
     }
 }
