@@ -2,8 +2,10 @@
 
 Kanche is a Rust identity service being built for straightforward developer
 integration and explicit tenant and application boundaries. The current service
-provides a health endpoint and the operational foundation. Authentication,
-sessions, organizations, and console APIs require their respective design gates.
+provides the health foundation and the first app-owned password-login slice with
+PostgreSQL, a TypeScript server SDK and Next.js adapter. See the
+[working integration/setup contract](docs/contracts/app-owned-integration.md).
+Organizations, signup/recovery, hosted login and console APIs remain undelivered.
 
 - [Product features and flows](Features.md)
 - [Planning and design gates](docs/architecture/v1-roadmap.md)
@@ -17,7 +19,7 @@ sessions, organizations, and console APIs require their respective design gates.
 
 The supported verification environment is Linux x86_64 (CI: Ubuntu 24.04),
 with Git, GNU Make, Python 3.12 or newer, rustup, and Node.js **26.7.0** with
-npm **11.19.0**. Rust **1.99.1**, Rustfmt, and Clippy are pinned in
+npm **11.19.0**, plus Docker for disposable PostgreSQL integration tests. Rust **1.99.1**, Rustfmt, and Clippy are pinned in
 `rust-toolchain.toml` and installed by rustup on first use. The security binary
 installer supports Linux x86_64; other platforms have not been verified.
 
@@ -36,7 +38,8 @@ make dev
 
 `make setup` installs locked repository tooling and fetches locked Rust
 dependencies. Installation and security checks require network access; running
-the health service requires no account or credentials. `make check` runs
+the health service requires no account or credentials. The private demo harness
+generates synthetic identities and ephemeral app/cookie keys automatically. `make check` runs
 formatting, Clippy, JavaScript/documentation checks, Rust tests, binary lifecycle
 checks, and Rust documentation. `make security` scans files for secrets with
 redacted findings and checks dependency advisories and licenses. CI also scans
@@ -54,10 +57,11 @@ The service reads process environment only. `.env.example` documents defaults
 and is not loaded automatically. Explicit values override defaults; invalid
 values fail startup without echoing their contents.
 
-| Variable           | Default          | Accepted values                                                                 |
-| ------------------ | ---------------- | ------------------------------------------------------------------------------- |
-| `KANCHE_BIND_ADDR` | `127.0.0.1:8080` | IP address and port, including bracketed IPv6; port 0 chooses an ephemeral port |
-| `KANCHE_LOG_LEVEL` | `info`           | `error`, `warn`, `info`, `debug`, `trace`                                       |
+| Variable              | Default             | Accepted values                                                                             |
+| --------------------- | ------------------- | ------------------------------------------------------------------------------------------- |
+| `KANCHE_BIND_ADDR`    | `127.0.0.1:8080`    | IP address and port, including bracketed IPv6; port 0 chooses an ephemeral port             |
+| `KANCHE_DATABASE_URL` | unset (health only) | PostgreSQL URL with explicit loopback IP; run operator migration first; never log the value |
+| `KANCHE_LOG_LEVEL`    | `info`              | `error`, `warn`, `info`, `debug`, `trace`                                                   |
 
 Keep loopback binding for local use. Binding an external interface requires an
 explicit configuration decision. `RUST_LOG` is not consumed. JSON logs record

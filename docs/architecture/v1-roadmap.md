@@ -21,7 +21,9 @@ origins, redirects, developer configuration, and safe errors.
 Tenant/application provisioning, password signup, verification, sign-in, and
 recovery are tracked in KN-3, KN-4, KN-5, and KN-10. Preserve tenant/application
 isolation and verify failure, expiry, replay, retry, and recovery behavior as
-applicable. These flows are not implemented yet.
+applicable. The first operator-provisioned password login slice is implemented; public signup,
+verification delivery and recovery remain open. See the
+[contract and workflow](../contracts/app-owned-integration.md).
 
 Review the [session lifecycle and threat model, KN-6](https://fyndx.atlassian.net/browse/KN-6)
 before session issuance, renewal, or revocation work in KN-7 through KN-9.
@@ -42,6 +44,9 @@ tracked in KN-14 through KN-16. Release evidence must cover the normal developer
 flow, isolation, configuration, migrations, operational visibility, and recovery.
 Billing, configurable connections, and dedicated hosting remain deferred.
 
-Repository boilerplate does not satisfy these design gates. The next design
-scope is the native integration contract; no authentication or session routes
-are authorized by this planning index.
+The app-owned KN-2 and KN-6 engineering prerequisites are completed in the
+[concrete contract and lifecycle](0003-app-owned-login.md), within the latest
+user-approved defaults recorded in Confluence. The first login slice implements
+that bounded profile. Hosted login is required next; its redirect transaction
+detail, future JWT purpose/timing, and KN-11 remain open. Repository boilerplate
+and passing local checks do not prove production readiness.

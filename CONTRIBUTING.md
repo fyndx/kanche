@@ -10,7 +10,7 @@ Follow the [fresh checkout setup](README.md#development-setup), then run:
 
 ```sh
 make fmt
-make check
+make check # includes disposable PostgreSQL; requires Docker
 make security
 ```
 
