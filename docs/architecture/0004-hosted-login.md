@@ -103,10 +103,29 @@ its own DB deadline. Concurrent initial loads without a nonce may conflict and
 require restart; arbitrary parallel browser starts are not promised. Key-reader
 rollout/emergency removal follow the existing lifecycle and may force restart.
 
-Hosted pages and callback responses set Cache-Control:no-store,
-Referrer-Policy:no-referrer, X-Content-Type-Options:nosniff and a restrictive CSP:
-no external assets/scripts; default-src 'none', form-action 'self',
-frame-ancestors 'none', base-uri 'none'. Safe hosted renderer may explicitly
+Hosted form/error documents set Referrer-Policy:same-origin; the successful handoff
+303 and app callback use no-referrer. Actual Chromium initially submitted Origin:null
+when the hosted form document used no-referrer, causing the strict Origin check
+to reject a legitimate form. Same-origin policy preserves that exact check while
+suppressing cross-origin referrer disclosure; same-origin ingress must still redact
+query/header context. Never accept null Origin as a workaround. All hosted and
+callback responses set Cache-Control:no-store, X-Content-Type-Options:nosniff
+and a restrictive CSP:
+no external assets/scripts; default-src 'none', frame-ancestors 'none', base-uri
+'none'. Form documents permit form-action 'self' plus only that transaction's
+exact registered callback source, including path. Chromium enforces this directive
+across the native form's cross-origin303; self-only policy blocked the required
+handoff even after Origin was corrected. The HTML action stays fixed /hosted/login.
+CSP callback sources must be safely constructed from validated canonical URI and
+encoded path so punctuation cannot inject directives; no wildcard or global
+callback allowlist. Initial and failed-password retry forms get the same scoped
+policy. Generic errors may use self-only when no validated form context exists.
+The successful303 may use the safe default; it retains no-referrer. CSP3 skips
+source path matching after redirects: the source expression includes the exact
+callback path, but CSP does not prove redirect-path equality. Backend exact
+registration/Location and app state/PKCE remain authoritative. Literal-IP and
+IPv6 callback CSP behavior is not established by the localhost Chromium evidence;
+URL validation support is not a browser compatibility claim. Safe hosted renderer may explicitly
 preserve its HTML error response through the generic Problem middleware; JSON
 API errors remain Problems. Only generated or validated fixed-format transaction/CSRF hidden values may be
 HTML-escaped into the form; no email/password/redirect reflection. Invalid contexts
@@ -122,6 +141,20 @@ Restoring a DB requires invalidate all transactions and revoke all sessions befo
 serving traffic. Existing coarse-lock/contention and DB/TLS deployment limits remain.
 Sign-out still revokes only the current app session; no hosted shared login cookie
 or automatic cross-app login exists. User sign out everywhere remains undelivered.
+
+## Shared password admission refinement
+
+Independent review found that request cancellation could release a borrowed hash
+permit while the blocking hash continued, and roll back rate counters held in the
+same transaction. The implementation must commit bounded attempt accounting
+before hashing, transfer an owned admission permit into the actual worker until
+it exits, then reacquire the authoritative transaction and recheck current app
+key, identity/password snapshot and eligibility before issuing a session or
+handoff. Hosted submission also rechecks pending transaction/browser/CSRF state.
+Cancelled admitted requests consume their rate budget; cancellation cannot create
+extra simultaneous hash workers by dropping the awaiting future. Password work
+runs outside the coarse DB lock; all authoritative state decisions remain ordered.
+This is a reliability correction within the approved defaults, not a new flow.
 
 ## Rationale and acceptance obligations
 
