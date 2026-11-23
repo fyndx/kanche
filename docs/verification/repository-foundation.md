@@ -1,54 +1,73 @@
 # Repository foundation verification
 
-The service foundation includes the health endpoint, configuration validation,
-safe structured request logging, generated request IDs, and bounded graceful
-shutdown. Authentication and session routes are not implemented. Detailed
-planning and source material are maintained in the
-[Confluence planning archive](https://fyndx.atlassian.net/wiki/spaces/KA/pages/97583105),
-with delivery tasks in [Jira KN](https://fyndx.atlassian.net/issues/?jql=project%20%3D%20KN).
+This record covers the health endpoint, configuration validation, structured
+request logging, generated request IDs, graceful shutdown, and repository
+quality checks. Authentication, sessions, and organization APIs remain subject
+to the [planning and design gates](../architecture/v1-roadmap.md).
 
-## Current verification scope
+## Verification contract
 
-The supported verification target is Linux x86_64 (CI: Ubuntu 24.04), with Rust
-1.99.1, Node.js 26.7.0, npm 11.19.0, and Python 3.12 or newer.
+The verified platform is Linux x86_64. CI targets Ubuntu 24.04. Tool versions and
+setup requirements are defined in the [development guide](../../README.md#development-setup)
+and repository manifests.
 
-| Command         | Coverage                                                                                                                                                       |
-| --------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `make setup`    | Verify pinned tools; install locked npm tooling; fetch locked Rust dependencies.                                                                               |
-| `make check`    | Rustfmt, Clippy with warnings denied, Prettier, ESLint, relative documentation links, Rust integration tests, binary lifecycle checks, and Rust documentation. |
-| `make security` | Secret scanning, Rust advisory/license/source policies, npm advisories, and npm license policy. CI also scans Git history.                                     |
+| Command         | Coverage                                                                                                         |
+| --------------- | ---------------------------------------------------------------------------------------------------------------- |
+| `make setup`    | Pinned tool versions, locked npm installation, and locked Rust dependency fetch.                                 |
+| `make check`    | Formatting, Clippy, JavaScript lint, documentation links, Rust tests, process lifecycle, and Rust documentation. |
+| `make security` | Secret scanning, dependency advisories, source policies, and dependency licenses.                                |
 
-## Validation results · 2026-11-19
+## Recorded evidence
 
-`make setup`, `make check`, and `make security` passed in a clean temporary
-source copy without local environment files, installed dependency trees, build
-products, or scanner binaries. Installed runtimes and global package caches
-were available. Rust documentation was built with warnings denied, matching CI.
+### Foundation validation · 2026-11-19
 
-Two Rust integration tests and the binary lifecycle checks passed. Formatting,
-JavaScript lint, and relative documentation links passed. Secret scanning found
-no findings. Rust advisory/license/source checks passed, with non-failing
-warnings for duplicate `syn` versions and unused license allowances. npm reported
-zero known advisories, and its license policy passed.
+`make setup`, `make check`, and `make security` passed against a clean source
+copy using the pinned toolchain. Dependency caches were available; this does
+not demonstrate installation with empty caches. Rust documentation passed with
+warnings denied.
 
-Planning was preserved in Confluence before repository cleanup: 15 document
-pages were read back, the complete source attachment was downloaded and checked
-against its archive hash and all 70 per-file hashes, and 16 migrated Jira tasks
-were checked against their original scope and acceptance criteria. Archived
-planning does not establish current implementation or approve a design gate.
+The two Rust integration tests and process lifecycle checks passed. Coverage
+includes invalid configuration, occupied-port failure, log redaction, request
+ID correlation, SIGINT/SIGTERM shutdown, and port reuse. Formatting, JavaScript
+lint, and relative documentation link checks also passed.
 
-## Limits
+Secret scanning reported no findings. Dependency advisory, source, and license
+checks passed. npm reported no known advisories at the time of validation.
+Rust policy checks reported non-failing warnings for duplicate `syn` versions
+and unused license allowances.
 
-- Local commands do not verify hosted workflow execution, repository protections,
-  private reporting settings, or email delivery.
-- Binary checks cover invalid configuration, occupied-port failure, safe logs,
-  request ID correlation, SIGINT/SIGTERM shutdown, and port reuse. The forced
-  ten-second deadline has not been exercised with a deliberately stalled handler.
+### Oxlint and Oxfmt migration · 2026-11-19
+
+Oxlint 1.94.0 and Oxfmt 0.79.0 replace ESLint and Prettier. The npm and Make
+commands retain their existing entry points. Oxfmt preserves the 80-column
+width and generated-file and lockfile exclusions, adds TOML formatting, and
+sorts `package.json` keys.
+
+The lint configuration carries over 62 rules at error severity, including
+Oxlint's experimental `no-undef` and `no-useless-assignment` rules. There are
+no equivalent rules for `no-dupe-args` and `no-octal`. Ad hoc ES module checks
+confirmed parser rejection of duplicate arguments and legacy octal literals,
+acceptance of Node globals, and rejection of undefined names and unused
+variables. These checks were not retained as regression tests and do not
+establish full ESLint equivalence.
+
+A locked dependency reinstall with `npm ci --offline`, `make check`, and
+`make security` passed. Both Rust integration tests, process lifecycle checks,
+formatting, lint, and documentation link checks passed. Security results and
+non-failing Rust policy warnings were consistent with foundation validation.
+
+## Evidence limits
+
+- Results describe the recorded revisions and validation dates. They do not
+  establish production readiness or current dependency security status.
+- Hosted workflow execution, repository protections, private reporting settings,
+  and email delivery were not verified. CI additionally scans Git history.
+- The forced shutdown deadline has not been exercised with a stalled handler.
 - Request logs cover response creation rather than streamed body completion.
-- Documentation checks cover formatting and relative file targets; remote URLs
-  and heading anchors are not checked.
-- Dependency policy permits duplicate crate versions with warnings. License
-  checks do not replace distribution review. npm blocks high/critical findings
-  and prints lower-severity findings for review.
-- Synthetic identities and temporary keys must be used for security tests.
-  Repository checks do not establish production readiness.
+- Documentation checks cover relative file targets; remote URLs and heading
+  anchors are not checked.
+- Dependency policy permits duplicate crate versions with warnings. npm blocks
+  high and critical advisories; lower-severity findings require review. License
+  checks do not replace distribution review.
+- The tooling migration was verified on Linux x86_64. Other operating systems
+  and comparative performance were not evaluated.

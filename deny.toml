@@ -3,7 +3,15 @@ version = 2
 
 [licenses]
 version = 2
-allow = ["MPL-2.0", "MIT", "Apache-2.0", "BSD-2-Clause", "BSD-3-Clause", "ISC", "Unicode-3.0"]
+allow = [
+  "MPL-2.0",
+  "MIT",
+  "Apache-2.0",
+  "BSD-2-Clause",
+  "BSD-3-Clause",
+  "ISC",
+  "Unicode-3.0",
+]
 
 [bans]
 multiple-versions = "warn"
