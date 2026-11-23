@@ -140,7 +140,7 @@
               "Retry-After": {
                 "schema": {
                   "type": "integer",
-                  "const": 900
+                  "const": 60
                 }
               }
             },

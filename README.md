@@ -60,11 +60,12 @@ The service reads process environment only. `.env.example` documents defaults
 and is not loaded automatically. Explicit values override defaults; invalid
 values fail startup without echoing their contents.
 
-| Variable              | Default             | Accepted values                                                                             |
-| --------------------- | ------------------- | ------------------------------------------------------------------------------------------- |
-| `KANCHE_BIND_ADDR`    | `127.0.0.1:8080`    | IP address and port, including bracketed IPv6; port 0 chooses an ephemeral port             |
-| `KANCHE_DATABASE_URL` | unset (health only) | PostgreSQL URL with explicit loopback IP; run operator migration first; never log the value |
-| `KANCHE_LOG_LEVEL`    | `info`              | `error`, `warn`, `info`, `debug`, `trace`                                                   |
+| Variable               | Default                        | Accepted values                                                                                                         |
+| ---------------------- | ------------------------------ | ----------------------------------------------------------------------------------------------------------------------- |
+| `KANCHE_BIND_ADDR`     | `127.0.0.1:8080`               | IP address and port, including bracketed IPv6; port 0 chooses an ephemeral port                                         |
+| `KANCHE_DATABASE_URL`  | unset (health only)            | PostgreSQL URL with explicit loopback IP; run operator migration first; never log the value                             |
+| `KANCHE_HOSTED_ORIGIN` | unset (hosted routes disabled) | Canonical HTTPS origin or loopback HTTP for development; see [hosted integration](docs/contracts/hosted-integration.md) |
+| `KANCHE_LOG_LEVEL`     | `info`                         | `error`, `warn`, `info`, `debug`, `trace`                                                                               |
 
 Keep loopback binding for local use. Binding an external interface requires an
 explicit configuration decision. `RUST_LOG` is not consumed. JSON logs record

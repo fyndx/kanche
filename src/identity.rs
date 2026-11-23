@@ -61,6 +61,8 @@ pub struct Store {
     config: tokio_postgres::Config,
     dummy: Arc<String>,
     admission: Arc<Semaphore>,
+    connections: Arc<Semaphore>,
+    hosted_pages: Arc<Semaphore>,
     hosted: Option<Arc<hosted::HostedConfig>>,
 }
 impl Store {
@@ -74,16 +76,24 @@ impl Store {
             config,
             dummy: Arc::new(password_hash(&secret())?),
             admission: Arc::new(Semaphore::new(8)),
+            connections: Arc::new(Semaphore::new(16)),
+            hosted_pages: Arc::new(Semaphore::new(4)),
             hosted: None,
         })
     }
     pub async fn connect(&self) -> Result<Client, Failure> {
+        let permit = self
+            .connections
+            .clone()
+            .try_acquire_owned()
+            .map_err(|_| "temporarily_unavailable")?;
         let (client, connection) =
             tokio::time::timeout(Duration::from_secs(2), self.config.connect(NoTls))
                 .await
                 .map_err(|_| "temporarily_unavailable")?
                 .map_err(db_error)?;
         tokio::spawn(async move {
+            let _permit = permit;
             let _ = connection.await;
         });
         client
@@ -552,6 +562,36 @@ impl Store {
     pub async fn maintenance(&self, operation: &str, app: &str, user: &str) -> Result<(), Failure> {
         let mut c = self.connect().await?;
         let tx = Self::begin(&mut c).await?;
+        let target_exists = match operation {
+            "remove-enrollment" => {
+                tx.query_opt(
+                    "SELECT 1 FROM enrollments WHERE app_id=$1 AND user_id=$2",
+                    &[&app, &user],
+                )
+                .await
+            }
+            "disable-user" => {
+                tx.query_opt("SELECT 1 FROM users WHERE id=$1", &[&user])
+                    .await
+            }
+            "disable-app" | "revoke-app-sessions" => {
+                tx.query_opt("SELECT 1 FROM applications WHERE id=$1", &[&app])
+                    .await
+            }
+            "remove-key" => {
+                tx.query_opt("SELECT 1 FROM application_keys WHERE digest=$1", &[&app])
+                    .await
+            }
+            _ => Ok(Some(
+                tx.query_one("SELECT 1", &[])
+                    .await
+                    .map_err(|_| "maintenance_failed")?,
+            )),
+        }
+        .map_err(|_| "maintenance_failed")?;
+        if target_exists.is_none() {
+            return Err("maintenance_target_not_found");
+        }
         match operation {
             "cleanup" => {
                 let now = now(&tx).await?;
@@ -601,16 +641,18 @@ impl Store {
                 .await
                 .map_err(|_| "maintenance_failed")?;
             }
-            "disable-app" => {
+            "disable-app" | "revoke-app-sessions" => {
                 tx.execute(
                     "UPDATE hosted_transactions SET invalidated=true WHERE app_id=$1",
                     &[&app],
                 )
                 .await
                 .map_err(|_| "maintenance_failed")?;
-                tx.execute("UPDATE applications SET active=false WHERE id=$1", &[&app])
-                    .await
-                    .map_err(|_| "maintenance_failed")?;
+                if operation == "disable-app" {
+                    tx.execute("UPDATE applications SET active=false WHERE id=$1", &[&app])
+                        .await
+                        .map_err(|_| "maintenance_failed")?;
+                }
                 tx.execute("UPDATE sessions SET revoked=true WHERE app_id=$1", &[&app])
                     .await
                     .map_err(|_| "maintenance_failed")?;
@@ -632,6 +674,21 @@ impl Store {
 #[cfg(test)]
 mod cancellation_tests {
     use super::*;
+    #[tokio::test]
+    async fn database_admission_rejects_before_connecting() {
+        let store = Store::new("postgres://postgres@127.0.0.1:1/postgres").unwrap();
+        let permit = store
+            .connections
+            .clone()
+            .try_acquire_many_owned(16)
+            .unwrap();
+        assert!(matches!(
+            store.connect().await,
+            Err("temporarily_unavailable")
+        ));
+        drop(permit);
+        assert_eq!(store.connections.available_permits(), 16);
+    }
     #[tokio::test]
     async fn cancelled_password_request_keeps_hash_admission_until_worker_finishes() {
         let admission = Arc::new(Semaphore::new(1));

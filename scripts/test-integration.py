@@ -14,7 +14,7 @@ try:
                    check=True, stdout=subprocess.DEVNULL)
     port = subprocess.check_output(['docker', 'port', name, '5432/tcp'], text=True).strip().split(':')[-1]
     for _ in range(60):
-        if subprocess.run(['docker', 'exec', name, 'pg_isready', '-U', 'postgres'],
+        if subprocess.run(['docker', 'exec', name, 'pg_isready', '-h', '127.0.0.1', '-U', 'postgres'],
                           stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL).returncode == 0:
             break
         time.sleep(0.2)

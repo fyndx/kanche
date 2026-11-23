@@ -15,18 +15,29 @@ pub(crate) fn error(code: Failure) -> Response {
         "authentication_failed" | "invalid_application_credentials" | "unauthenticated" => {
             StatusCode::UNAUTHORIZED
         }
-        "rate_limited" => StatusCode::TOO_MANY_REQUESTS,
+        "rate_limited" | "rate_limited_short" => StatusCode::TOO_MANY_REQUESTS,
         _ => StatusCode::SERVICE_UNAVAILABLE,
     };
     let mut r = status.into_response();
-    r.extensions_mut().insert(Code(code));
+    if code == "rate_limited_short" {
+        r.headers_mut()
+            .insert("retry-after", axum::http::HeaderValue::from_static("60"));
+    }
+    r.extensions_mut()
+        .insert(Code(if code == "rate_limited_short" {
+            "rate_limited"
+        } else {
+            code
+        }));
     r
 }
 pub(crate) fn key(headers: &HeaderMap) -> &str {
     headers
         .get("authorization")
         .and_then(|x| x.to_str().ok())
-        .and_then(|x| x.strip_prefix("Bearer "))
+        .and_then(|x| x.split_once(' '))
+        .filter(|(scheme, _)| scheme.eq_ignore_ascii_case("Bearer"))
+        .map(|(_, credential)| credential)
         .unwrap_or("")
 }
 fn credential(headers: &HeaderMap) -> &str {
@@ -87,4 +98,23 @@ async fn renew(State(s): State<Store>, h: HeaderMap) -> Response {
 }
 async fn revoke(State(s): State<Store>, h: HeaderMap) -> Response {
     session(s, h, "revoke").await
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn bearer_scheme_is_case_insensitive() {
+        for scheme in ["Bearer", "bearer", "bEaReR"] {
+            let mut headers = HeaderMap::new();
+            headers.insert(
+                "authorization",
+                format!("{scheme} synthetic").parse().unwrap(),
+            );
+            assert_eq!(key(&headers), "synthetic");
+        }
+        let mut headers = HeaderMap::new();
+        headers.insert("authorization", "Basic synthetic".parse().unwrap());
+        assert_eq!(key(&headers), "");
+    }
 }

@@ -84,6 +84,18 @@ async fn app_owned_invariants() {
     let s = Store::new(&url).unwrap();
     s.migrate().await.unwrap();
     s.migrate().await.unwrap();
+    for (op, app, user) in [
+        ("disable-app", "missing", ""),
+        ("disable-user", "", "missing"),
+        ("remove-enrollment", "missing", "missing"),
+        ("remove-key", "missing", ""),
+        ("revoke-app-sessions", "missing", ""),
+    ] {
+        assert_eq!(
+            s.maintenance(op, app, user).await,
+            Err("maintenance_target_not_found")
+        );
+    }
     let other = Store::new(&url).unwrap();
     let key = secret();
     let key2 = secret();
@@ -339,6 +351,9 @@ async fn app_owned_invariants() {
         .await
         .unwrap();
     assert!(s.application(&foreign).await.is_err());
+    s.maintenance("revoke-app-sessions", "a2", "")
+        .await
+        .unwrap();
     s.maintenance("revoke-all", "", "").await.unwrap();
     s.maintenance("cleanup", "", "").await.unwrap();
     assert_eq!(

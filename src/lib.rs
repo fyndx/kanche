@@ -105,9 +105,14 @@ fn problem(response: Response, request_id: &str) -> Response {
         HeaderValue::from_static("application/problem+json"),
     );
     if status.as_u16() == 429 {
-        result
-            .headers_mut()
-            .insert("retry-after", HeaderValue::from_static("900"));
+        result.headers_mut().insert(
+            "retry-after",
+            response
+                .headers()
+                .get("retry-after")
+                .cloned()
+                .unwrap_or(HeaderValue::from_static("900")),
+        );
     }
     result
 }

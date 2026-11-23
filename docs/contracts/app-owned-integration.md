@@ -77,6 +77,8 @@ Operator-only maintenance commands (same database authority as migrations):
 - `remove-enrollment APP USER`: deactivate that enrollment and revoke its sessions.
 - `disable-user UNUSED USER`: disable a tenant user and revoke all their app sessions.
 - `disable-app APP`: disable the app and revoke all its sessions.
+- `revoke-app-sessions APP`: revoke that app’s sessions and invalidate hosted
+  transactions while leaving the app active. Use after removing a compromised key.
 - `remove-key SHA256_DIGEST`: remove a stored application key digest; supply the
   digest, never a raw credential. Provisioning the same app/user with a new random
   application secret adds a rollout key. Remove old digests after rollout.
@@ -144,3 +146,12 @@ next ordered authoritative checks reject; already-authorized app work may finish
 Lost sign-in responses or browser cookie rejection can leave an orphan session;
 bounded expiry and cleanup apply. No browser persistence acknowledgment or
 exactly-once login is claimed. Passing local checks does not establish readiness.
+
+Database admission is bounded per Store (16 concurrent connections); anonymous
+hosted page reads have an additional four-request admission limit. Saturation
+returns `temporarily_unavailable`. These are process-local limits; deployment
+replica counts and database capacity still require load testing. The shared
+authority lock remains a throughput limit.
+
+Targeted operator commands fail with `maintenance_target_not_found` when the
+target does not exist. Missing or empty CLI arguments fail before execution.

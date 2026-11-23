@@ -720,6 +720,43 @@ async fn hosted_profile_invariants() {
             .await
             .is_err()
     );
+    s.maintenance("revoke-app-sessions", "hosted_app", "")
+        .await
+        .unwrap();
+    assert!(
+        db.query_one("SELECT active FROM applications WHERE id='hosted_app'", &[])
+            .await
+            .unwrap()
+            .get::<_, bool>(0)
+    );
+    assert_eq!(
+        db.query_one(
+            "SELECT count(*) FROM sessions WHERE app_id='hosted_app' AND NOT revoked",
+            &[]
+        )
+        .await
+        .unwrap()
+        .get::<_, i64>(0),
+        0
+    );
+    db.execute("DELETE FROM abuse_buckets", &[]).await.unwrap();
+    db.execute("INSERT INTO abuse_buckets VALUES ('hosted-create:hosted_app', floor(extract(epoch FROM clock_timestamp()))::bigint+60, 30)", &[]).await.unwrap();
+    let limited = request(
+        &s,
+        ("POST", "/v1/hosted/transactions"),
+        Some(&key),
+        None,
+        None,
+        Some("application/json"),
+        json!({"redirect_uri": CALLBACK, "state": secret(), "code_challenge": challenge(&verifier), "code_challenge_method": "S256"}).to_string(),
+    )
+    .await;
+    assert_eq!(limited.status, 429);
+    assert_eq!(limited.headers["retry-after"], "60");
+    assert_eq!(
+        serde_json::from_str::<Value>(&limited.body).unwrap()["code"],
+        "rate_limited"
+    );
     s.maintenance("cleanup", "", "").await.unwrap();
     assert!(db.query_one("SELECT count(*) FROM hosted_transactions WHERE invalidated OR consumed OR expires_at<=floor(extract(epoch FROM clock_timestamp()))::bigint OR code_expires_at<=floor(extract(epoch FROM clock_timestamp()))::bigint",&[]).await.unwrap().get::<_,i64>(0)==0);
     println!(

@@ -52,9 +52,22 @@ async fn run() -> Result<(), &'static str> {
             }
         }
         Some(
-            op @ ("cleanup" | "revoke-all" | "remove-enrollment" | "disable-user" | "disable-app"
-            | "remove-key"),
+            op @ ("cleanup"
+            | "revoke-all"
+            | "remove-enrollment"
+            | "disable-user"
+            | "disable-app"
+            | "remove-key"
+            | "revoke-app-sessions"),
         ) => {
+            let required = match op {
+                "cleanup" | "revoke-all" => 1,
+                "remove-enrollment" | "disable-user" => 3,
+                _ => 2,
+            };
+            if args.len() != required || args.iter().any(|v| v.trim().is_empty()) {
+                return Err("invalid_operator_arguments");
+            }
             store
                 .maintenance(
                     op,
@@ -64,7 +77,7 @@ async fn run() -> Result<(), &'static str> {
                 .await
         }
         _ => Err(
-            "Use migrate, provision-synthetic, cleanup, revoke-all, remove-enrollment APP USER, disable-user UNUSED USER, disable-app APP, remove-key SHA256_DIGEST, register-callback or remove-callback (bounded stdin JSON)",
+            "Use migrate, provision-synthetic, cleanup, revoke-all, remove-enrollment APP USER, disable-user UNUSED USER, disable-app APP, revoke-app-sessions APP, remove-key SHA256_DIGEST, register-callback or remove-callback (bounded stdin JSON)",
         ),
     }
 }

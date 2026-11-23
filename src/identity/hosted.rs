@@ -245,7 +245,11 @@ impl Store {
             if error == "rate_limited" {
                 tx.commit().await.map_err(db_error)?;
             }
-            return Err(error);
+            return Err(if error == "rate_limited" {
+                "rate_limited_short"
+            } else {
+                error
+            });
         }
         let handle = secret();
         let expires = timestamp + 300;
@@ -263,6 +267,11 @@ impl Store {
         if !hex_token(handle) || browser.is_some_and(|v| !hex_token(v)) {
             return Err("invalid_handoff");
         }
+        let _page_permit = self
+            .hosted_pages
+            .clone()
+            .try_acquire_owned()
+            .map_err(|_| "temporarily_unavailable")?;
         let mut client = self.connect().await?;
         let tx = Self::begin(&mut client).await?;
         let timestamp = now(&tx).await?;
