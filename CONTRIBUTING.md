@@ -38,8 +38,13 @@ Keep observed behavior, test evidence, proposals, and assumptions distinct.
 ## Tooling and dependency maintenance
 
 Review automated dependency PRs and lockfile changes. Pin GitHub Actions to full
-commit SHAs and keep workflow permissions minimal. Update Node/npm versions
-in `.nvmrc`, `package.json`, `package-lock.json`, and CI together. Update Rust in
+commit SHAs and keep workflow permissions minimal. CI and `.nvmrc` follow the
+latest Node.js LTS; use its bundled npm without a global npm upgrade. Tool
+managers are optional. Keep the minimum Node version in `package.json` and
+`package-lock.json` aligned with verified requirements and document changes in
+the README. Dependency versions remain locked; a floating LTS toolchain does not
+establish compatibility with future releases until CI passes on those releases.
+Update Rust in
 `rust-toolchain.toml` and `Cargo.toml`, then verify the fresh-checkout workflow.
 
 Run `make security` before committing. Its directory scan covers untracked files;

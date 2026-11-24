@@ -19,18 +19,36 @@ fresh-checkout results, browser findings and remaining operational limits.
 ## Development setup
 
 The supported verification environment is Linux x86_64 (CI: Ubuntu 24.04),
-with Git, GNU Make, Python 3.12 or newer, rustup, and Node.js **26.7.0** with
-npm **11.19.0**, plus Docker for disposable PostgreSQL integration tests. Rust **1.99.1**, Rustfmt, and Clippy are pinned in
+with Git, GNU Make, Python 3.12 or newer, rustup, and the latest Node.js **LTS** release
+(Node 26 or newer) with its bundled npm, plus Docker for disposable PostgreSQL integration tests. Rust **1.99.1**, Rustfmt, and Clippy are pinned in
 `rust-toolchain.toml` and installed by rustup on first use. The security binary
 installer supports Linux x86_64; other platforms have not been verified.
 
-From a fresh checkout, with the prerequisites installed:
+Use any tool manager or installation method to install the latest Node.js LTS.
+No global npm installation or upgrade is required. CI follows `lts/*` and checks
+for the latest available release. `package.json` declares the minimum Node
+version; `make tools` checks that the active build is LTS and reports Node/npm
+versions. The local check does not determine whether a newer LTS is available.
+
+With Volta installed and its shims on `PATH`:
 
 ```sh
-# If using nvm:
+volta install node@lts
+```
+
+This selects the current LTS as your Volta default. Rerun it to update; the
+repository does not pin a Volta version. If using nvm instead, `.nvmrc` selects
+LTS:
+
+```sh
 nvm install
 nvm use
-npm install --global npm@11.19.0
+```
+
+With the prerequisites and required versions available, use the same workflow
+regardless of tool manager:
+
+```sh
 make setup
 make check
 make security
