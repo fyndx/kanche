@@ -1,6 +1,8 @@
 # Sessions
 
-**Status:** Planned, Tasks 06–09. No Kanche session routes exist.
+**Status:** Initial opaque app-owned slice implemented, Tasks 06–09.
+Read-only online verification, explicit idle renewal and current-session revocation
+follow the [completed app-owned design](../architecture/0003-app-owned-login.md).
 The [V1 roadmap](../architecture/v1-roadmap.md) requires a design gate before
 implementation. The [integration guide](integration.md) describes the native
 contract that must be reviewed before implementation.
@@ -9,9 +11,9 @@ contract that must be reviewed before implementation.
 
 Task 06 must define browser cookies, token boundaries, origins, application
 binding, expiry, renewal, sign-out scope, revocation, and signing-key rotation.
-Record the lifecycle and threat model for review. Cookie names and attributes,
-claim formats, token lifetimes, key publication, and revocation latency are not
-specified yet. Each behavior needs an explicit contract and repeatable checks.
+Record the lifecycle and threat model for review. The [initial profile](../contracts/app-owned-integration.md) specifies cookies,
+opaque credentials, lifetimes, key rollout and revocation ordering. JWT remains a
+required future profile with purpose/timing open. Each behavior needs an explicit contract and repeatable checks.
 
 ## Issuance and protected requests
 

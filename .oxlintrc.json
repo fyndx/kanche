@@ -74,7 +74,7 @@
   },
   "overrides": [
     {
-      "files": ["**/*.{js,mjs}"],
+      "files": ["**/*.{js,mjs,ts}"],
       "env": {
         "node": true
       }

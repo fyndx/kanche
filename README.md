@@ -2,32 +2,58 @@
 
 Kanche is a Rust identity service being built for straightforward developer
 integration and explicit tenant and application boundaries. The current service
-provides a health endpoint and the operational foundation. Authentication,
-sessions, organizations, and console APIs require their respective design gates.
+provides the health foundation and the first app-owned password-login slice with
+PostgreSQL, a TypeScript server SDK and Next.js adapter. See the
+[working integration/setup contract](docs/contracts/app-owned-integration.md).
+The [hosted login profile](docs/contracts/hosted-integration.md) uses the same
+app-bound sessions. Organizations, signup/recovery and console APIs remain undelivered.
+[Both-profile verification evidence](docs/verification/hosted-login.md) records
+fresh-checkout results, browser findings and remaining operational limits.
 
 - [Product features and flows](Features.md)
-- [Planning and design gates](docs/architecture/v1-roadmap.md)
+- [Roadmap](docs/architecture/v1-roadmap.md)
 - [Product direction](docs/architecture/0002-product-direction.md)
 - [Framework decision](docs/architecture/0001-axum.md)
 - [Engineering standards](AGENTS.md)
-- [Kanche Confluence space](https://fyndx.atlassian.net/wiki/spaces/KA)
-- [Kanche Jira backlog](https://fyndx.atlassian.net/issues/?jql=project%20%3D%20KN)
 
 ## Development setup
 
 The supported verification environment is Linux x86_64 (CI: Ubuntu 24.04),
-with Git, GNU Make, Python 3.12 or newer, rustup, and Node.js **26.7.0** with
-npm **11.19.0**. Rust **1.99.1**, Rustfmt, and Clippy are pinned in
-`rust-toolchain.toml` and installed by rustup on first use. The security binary
+with Git, GNU Make, Python 3.12 or newer, rustup, and the latest Node.js **LTS** release
+(Node 26 or newer) with its bundled npm, plus Docker for disposable PostgreSQL integration tests. Rust uses the **stable** channel, with Rustfmt and Clippy
+selected in `rust-toolchain.toml` and installed by rustup on first use.
+`Cargo.toml`'s `rust-version = "1.100.0"` sets the minimum supported compiler,
+not an exact toolchain pin. Run `rustup update stable` to update an existing
+installation; selecting the channel does not force an update on every setup
+or CI run. The security binary
 installer supports Linux x86_64; other platforms have not been verified.
 
-From a fresh checkout, with the prerequisites installed:
+Use any tool manager or installation method to install the latest Node.js LTS.
+No global npm installation or upgrade is required. CI follows `lts/*` and checks
+for the latest available release. `package.json` declares the minimum Node
+version, enforced by `npm ci` through `.npmrc`'s `engine-strict` setting.
+`make tools` reports the active Node/npm versions. Setup accepts compatible
+Node builds without requiring an LTS marker; LTS remains the recommended choice.
+
+With Volta installed and its shims on `PATH`:
 
 ```sh
-# If using nvm:
+volta install node@lts
+```
+
+This selects the current LTS as your Volta default. Rerun it to update; the
+repository does not pin a Volta version. If using nvm instead, `.nvmrc` selects
+LTS:
+
+```sh
 nvm install
 nvm use
-npm install --global npm@11.19.0
+```
+
+With the prerequisites and required versions available, use the same workflow
+regardless of tool manager:
+
+```sh
 make setup
 make check
 make security
@@ -36,7 +62,7 @@ make dev
 
 `make setup` installs locked repository tooling and fetches locked Rust
 dependencies. Installation and security checks require network access; running
-the health service requires no account or credentials. `make check` runs
+the health service requires no account or credentials. Integration tests use synthetic identities and ephemeral test keys. `make check` runs
 formatting, Clippy, JavaScript/documentation checks, Rust tests, binary lifecycle
 checks, and Rust documentation. `make security` scans files for secrets with
 redacted findings and checks dependency advisories and licenses. CI also scans
@@ -54,10 +80,12 @@ The service reads process environment only. `.env.example` documents defaults
 and is not loaded automatically. Explicit values override defaults; invalid
 values fail startup without echoing their contents.
 
-| Variable           | Default          | Accepted values                                                                 |
-| ------------------ | ---------------- | ------------------------------------------------------------------------------- |
-| `KANCHE_BIND_ADDR` | `127.0.0.1:8080` | IP address and port, including bracketed IPv6; port 0 chooses an ephemeral port |
-| `KANCHE_LOG_LEVEL` | `info`           | `error`, `warn`, `info`, `debug`, `trace`                                       |
+| Variable               | Default                        | Accepted values                                                                                                         |
+| ---------------------- | ------------------------------ | ----------------------------------------------------------------------------------------------------------------------- |
+| `KANCHE_BIND_ADDR`     | `127.0.0.1:8080`               | IP address and port, including bracketed IPv6; port 0 chooses an ephemeral port                                         |
+| `KANCHE_DATABASE_URL`  | unset (health only)            | PostgreSQL URL with explicit loopback IP; run operator migration first; never log the value                             |
+| `KANCHE_HOSTED_ORIGIN` | unset (hosted routes disabled) | Canonical HTTPS origin or loopback HTTP for development; see [hosted integration](docs/contracts/hosted-integration.md) |
+| `KANCHE_LOG_LEVEL`     | `info`                         | `error`, `warn`, `info`, `debug`, `trace`                                                                               |
 
 Keep loopback binding for local use. Binding an external interface requires an
 explicit configuration decision. `RUST_LOG` is not consumed. JSON logs record

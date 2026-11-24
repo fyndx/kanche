@@ -2,20 +2,26 @@
   "name": "kanche-repo-tools",
   "private": true,
   "license": "MPL-2.0",
+  "workspaces": [
+    "packages/*"
+  ],
   "type": "module",
   "scripts": {
     "fmt": "oxfmt --write .",
     "fmt:check": "oxfmt --check .",
     "lint": "oxlint --deny-warnings . && node scripts/check-doc-links.mjs",
-    "licenses": "node scripts/check-npm-licenses.mjs"
+    "licenses": "node scripts/check-npm-licenses.mjs",
+    "typecheck": "tsc --noEmit",
+    "test:sdk": "node --conditions=react-server --test packages/tests/*.test.ts"
   },
   "devDependencies": {
+    "@apidevtools/swagger-parser": "13.1.0",
+    "@types/node": "26.0.0",
     "oxfmt": "0.79.0",
-    "oxlint": "1.94.0"
+    "oxlint": "1.94.0",
+    "typescript": "7.0.2"
   },
   "engines": {
-    "node": "26.7.0",
-    "npm": "11.19.0"
-  },
-  "packageManager": "npm@11.19.0"
+    "node": ">=26"
+  }
 }

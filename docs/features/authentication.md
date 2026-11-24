@@ -1,6 +1,8 @@
 # Authentication and account lifecycle
 
-**Status:** Planned, Tasks 04, 05, and 10. No authentication routes exist.
+**Status:** Provisioned verified-password sign-in implemented in the initial
+[app-owned slice](../contracts/app-owned-integration.md); signup, email verification
+and recovery remain undelivered (Tasks 04 and 10).
 Depends on the integration contract and tenant/application foundation in the
 [V1 roadmap](../architecture/v1-roadmap.md).
 

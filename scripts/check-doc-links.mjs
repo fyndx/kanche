@@ -20,6 +20,10 @@ function walk(dir) {
 let checked = 0;
 for (const file of walk(".")) {
   const source = readFileSync(file, "utf8");
+  assert.ok(
+    !/https?:\/\/[^/\s]+\.atlassian\.net\b/i.test(source),
+    `Private planning workspace link in public documentation: ${file}`,
+  );
   for (const match of source.matchAll(/\]\(([^\s)]+)(?:\s+"[^"]*")?\)/g)) {
     const target = match[1].replace(/^<|>$/g, "");
     if (/^(?:[a-z][a-z0-9+.-]*:|#)/i.test(target)) continue;

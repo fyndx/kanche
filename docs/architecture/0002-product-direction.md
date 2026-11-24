@@ -19,15 +19,11 @@ redirects, configuration, safe errors, and the supported developer entry point.
 Session work additionally requires an approved lifecycle and threat model.
 Standards conformance requires evidence against the relevant specification.
 
-## Planning and delivery
+## Delivery boundaries
 
-Detailed discussions live in the
-[Kanche Confluence space](https://fyndx.atlassian.net/wiki/spaces/KA), and delivery
-work is tracked in the [Kanche Jira project](https://fyndx.atlassian.net/issues/?jql=project%20%3D%20KN).
-The [design gates](v1-roadmap.md) remain prerequisites to implementation.
-Record the concrete flow, contract, tradeoffs, failure behavior, migration
-implications, and validation criteria before implementing a new boundary.
+Review concrete contracts, failure behavior, migration implications, and
+validation criteria before implementing a new boundary. Detailed planning and
+approval records are maintained privately. See the [public roadmap](v1-roadmap.md).
 
-The current service exposes only the health endpoint. Planning documents and
-repository checks do not establish that authentication or sessions are shipped
-or production-ready.
+The current branch provides app-owned and hosted provisioned-password login and
+online app-bound sessions. Repository checks do not establish production readiness.

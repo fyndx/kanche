@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MPL-2.0
 
-use kanche::{app, config::Config};
+use kanche::{app_with_store, config::Config, identity::Store};
 use std::{process::ExitCode, time::Duration};
 
 #[tokio::main]
@@ -21,7 +21,13 @@ async fn main() -> ExitCode {
     match run(config).await {
         Ok(()) => ExitCode::SUCCESS,
         Err(error) => {
-            tracing::error!(kind = ?error.kind(), "Server failed; check bind address, port availability, and OS permissions");
+            if error.kind() == std::io::ErrorKind::InvalidInput {
+                tracing::error!(
+                    "Authentication configuration invalid; KANCHE_DATABASE_URL needs an explicit loopback PostgreSQL IP; optional KANCHE_HOSTED_ORIGIN needs a canonical HTTPS or loopback HTTP origin"
+                );
+            } else {
+                tracing::error!(kind = ?error.kind(), "Server failed; check bind address, port availability, and OS permissions");
+            }
             ExitCode::FAILURE
         }
     }
@@ -53,7 +59,34 @@ async fn run(config: Config) -> std::io::Result<()> {
             std::process::exit(1);
         });
     };
-    axum::serve(listener, app())
+    let store = match std::env::var("KANCHE_DATABASE_URL") {
+        Ok(url) => Some(Store::new(&url).map_err(|_| {
+            std::io::Error::new(
+                std::io::ErrorKind::InvalidInput,
+                "Invalid database configuration; use an explicit loopback PostgreSQL address",
+            )
+        })?),
+        Err(std::env::VarError::NotPresent) => None,
+        Err(_) => {
+            return Err(std::io::Error::new(
+                std::io::ErrorKind::InvalidInput,
+                "Invalid database configuration",
+            ));
+        }
+    };
+    let store = match (store, std::env::var("KANCHE_HOSTED_ORIGIN")) {
+        (Some(store), Ok(origin)) => Some(store.with_hosted_origin(&origin).map_err(|_| {
+            std::io::Error::new(std::io::ErrorKind::InvalidInput, "Invalid hosted origin")
+        })?),
+        (store, Err(std::env::VarError::NotPresent)) => store,
+        _ => {
+            return Err(std::io::Error::new(
+                std::io::ErrorKind::InvalidInput,
+                "Hosted login requires database configuration and a canonical origin",
+            ));
+        }
+    };
+    axum::serve(listener, app_with_store(store))
         .with_graceful_shutdown(shutdown)
         .await
 }

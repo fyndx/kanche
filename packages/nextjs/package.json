@@ -1,0 +1,23 @@
+{
+  "name": "@kanche/nextjs",
+  "version": "0.1.0",
+  "private": true,
+  "license": "MPL-2.0",
+  "type": "module",
+  "exports": {
+    "./server": "./server.ts",
+    "./client": "./client.ts"
+  },
+  "dependencies": {
+    "@kanche/server": "0.1.0",
+    "server-only": "0.0.1"
+  },
+  "peerDependencies": {
+    "next": "^16.4.6"
+  },
+  "peerDependenciesMeta": {
+    "next": {
+      "optional": true
+    }
+  }
+}

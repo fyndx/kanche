@@ -10,7 +10,7 @@ Follow the [fresh checkout setup](README.md#development-setup), then run:
 
 ```sh
 make fmt
-make check
+make check # includes disposable PostgreSQL; requires Docker
 make security
 ```
 
@@ -25,12 +25,10 @@ raw captures, or personal data in Git or logs.
 
 ## Planning and review
 
-Use the [Kanche Confluence space](https://fyndx.atlassian.net/wiki/spaces/KA)
-for planning and design discussions, and the
-[Kanche Jira project](https://fyndx.atlassian.net/issues/?jql=project%20%3D%20KN)
-for scoped delivery tasks. Search existing pages and issues before creating new
-ones. Record design approvals and evidence limits; migration alone does not
-approve a design or mark implementation complete.
+Keep detailed planning, delivery tasks, and approval records in the private
+planning workspace. Public changes should describe behavior and evidence without
+internal URLs, page IDs, issue keys, private repository mappings, or conversation
+history. Review the staged diff and PR text for these details before publishing.
 
 Use the PR template to explain the problem, resulting behavior, evidence, and
 limits. Include configuration, compatibility, migration, and recovery notes as
@@ -40,9 +38,17 @@ Keep observed behavior, test evidence, proposals, and assumptions distinct.
 ## Tooling and dependency maintenance
 
 Review automated dependency PRs and lockfile changes. Pin GitHub Actions to full
-commit SHAs and keep workflow permissions minimal. Update Node/npm versions
-in `.nvmrc`, `package.json`, `package-lock.json`, and CI together. Update Rust in
-`rust-toolchain.toml` and `Cargo.toml`, then verify the fresh-checkout workflow.
+commit SHAs and keep workflow permissions minimal. CI and `.nvmrc` follow the
+latest Node.js LTS; use its bundled npm without a global npm upgrade. Tool
+managers are optional. Keep the minimum Node version in `package.json` and
+`package-lock.json` aligned with verified requirements and document changes in
+the README. Dependency versions remain locked; a floating LTS toolchain does not
+establish compatibility with future releases until CI passes on those releases.
+Rust tracks `stable` in `rust-toolchain.toml`; use `rustup update stable` to
+update an existing installation. `Cargo.toml`'s `rust-version` declares the
+minimum supported compiler, not a toolchain pin. Change that minimum only when
+requirements change and verify the fresh-checkout workflow. Record the compiler
+version used for verification; future stable releases require their own checks.
 
 Run `make security` before committing. Its directory scan covers untracked files;
 CI also scans Git history. Scanner output is redacted. Rust license checks cover

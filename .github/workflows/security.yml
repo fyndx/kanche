@@ -26,8 +26,8 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
-          node-version-file: .nvmrc
-      - run: npm install --global npm@11.19.0
+          node-version: "lts/*"
+          check-latest: true
       - run: rustup show active-toolchain
       - run: make security
       - name: Scan full Git history with redacted findings
