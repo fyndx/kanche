@@ -11,12 +11,10 @@ app-bound sessions. Organizations, signup/recovery and console APIs remain undel
 fresh-checkout results, browser findings and remaining operational limits.
 
 - [Product features and flows](Features.md)
-- [Planning and design gates](docs/architecture/v1-roadmap.md)
+- [Roadmap](docs/architecture/v1-roadmap.md)
 - [Product direction](docs/architecture/0002-product-direction.md)
 - [Framework decision](docs/architecture/0001-axum.md)
 - [Engineering standards](AGENTS.md)
-- [Kanche Confluence space](https://fyndx.atlassian.net/wiki/spaces/KA)
-- [Kanche Jira backlog](https://fyndx.atlassian.net/issues/?jql=project%20%3D%20KN)
 
 ## Development setup
 
@@ -41,8 +39,7 @@ make dev
 
 `make setup` installs locked repository tooling and fetches locked Rust
 dependencies. Installation and security checks require network access; running
-the health service requires no account or credentials. The private demo harness
-generates synthetic identities and ephemeral app/cookie keys automatically. `make check` runs
+the health service requires no account or credentials. Integration tests use synthetic identities and ephemeral test keys. `make check` runs
 formatting, Clippy, JavaScript/documentation checks, Rust tests, binary lifecycle
 checks, and Rust documentation. `make security` scans files for secrets with
 redacted findings and checks dependency advisories and licenses. CI also scans

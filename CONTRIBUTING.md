@@ -25,12 +25,10 @@ raw captures, or personal data in Git or logs.
 
 ## Planning and review
 
-Use the [Kanche Confluence space](https://fyndx.atlassian.net/wiki/spaces/KA)
-for planning and design discussions, and the
-[Kanche Jira project](https://fyndx.atlassian.net/issues/?jql=project%20%3D%20KN)
-for scoped delivery tasks. Search existing pages and issues before creating new
-ones. Record design approvals and evidence limits; migration alone does not
-approve a design or mark implementation complete.
+Keep detailed planning, delivery tasks, and approval records in the private
+planning workspace. Public changes should describe behavior and evidence without
+internal URLs, page IDs, issue keys, private repository mappings, or conversation
+history. Review the staged diff and PR text for these details before publishing.
 
 Use the PR template to explain the problem, resulting behavior, evidence, and
 limits. Include configuration, compatibility, migration, and recovery notes as

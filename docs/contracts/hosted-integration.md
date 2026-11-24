@@ -108,25 +108,14 @@ equality. Literal-IP/IPv6 browser callback CSP support remains unverified. Exact
 origins, app authority, state, PKCE, anonymous browser binding and CSRF each enforce
 a different boundary; none replaces the others.
 
-## Private runnable evidence and limits
+## Verification and limits
 
-Use authorized sibling checkouts and the pinned prerequisites described in the
-[app-owned setup](app-owned-integration.md). The private `kanche-demo` includes both
-profiles and a direct-HTTP client; no provider accounts or populated env files are
-needed. Synthetic identities and keys are generated in memory and the disposable
-PostgreSQL container is removed afterward. App and Kanche use distinct loopback
-hosts (`localhost:3010` and `127.0.0.1:18080`) to exercise cookie isolation.
+Run the repository checks with pinned prerequisites and Docker:
 
 ```sh
 make setup
 make check
 make security
-cd ../kanche-auth-research/kanche-demo
-npm ci
-npx playwright install chromium --only-shell
-npm run build
-npm run typecheck
-npm run evidence
 ```
 
 See the [verification record](../verification/hosted-login.md) for actual passing scope and gaps. Local checks do
@@ -134,4 +123,4 @@ not establish deployment TLS, remote database TLS, edge abuse resistance,
 capacity/HA, managed-key operations, browser-matrix coverage or backup/restore
 readiness. The database-wide authority lock remains intentionally coarse. Restore
 must invalidate outstanding hosted handoffs and revoke restored sessions before
-protected traffic. KN-11 and future JWT purpose/timing remain separate design work.
+protected traffic. Organization policy and future JWT purpose/timing remain separate design work.

@@ -1,29 +1,25 @@
-# KN-2 / KN-6: first app-owned login design gate
+# App-owned login architecture
 
-Engineering decision, 21 November 2026, within the user's approved baseline.
-Reviewed AGENTS.md, roadmap, current Confluence 99090434 / 99221506 / 98926594
-and KN-2/KN-6/KN-11 decisions. Older contradictory proposals are superseded.
-This completes the design prerequisites for the bounded app-owned slice below;
-it is not evidence of implemented behavior or production readiness.
+This document describes the bounded provisioned-password integration and session
+model. Verification evidence and operational limits are recorded separately.
 
-## Named delivery slices and boundaries
+## Implementation boundaries
 
-1. KN-3 foundation: PostgreSQL versioned migration, operator-only provisioning
+1. Identity foundation: PostgreSQL versioned migration, operator-only provisioning
    of tenant, app, verified synthetic tenant user, separate direct app enrollment.
    No public provisioning or administrator bearer shared with app requests.
-2. KN-4 prerequisite subset / KN-5: provisioned password identity and completed
+2. Password authentication: provisioned password identity and completed
    password login. Public signup, email delivery/verification, invitations and
    recovery remain undelivered; never advertise them.
-3. KN-7/8/9: opaque issuance, inspection, explicit idle renewal, current-session
-   revocation; TypeScript server SDK, Next.js adapter, private demo and HTTP client.
+3. Sessions and integration: opaque issuance, inspection, explicit idle renewal, current-session
+   revocation; TypeScript server SDK, Next.js adapter and HTTP API.
 
-KN-11 stays open: no organization tables, claims or endpoints. Direct enrollment
+Organization policy is not implemented: no organization tables, claims or endpoints. Direct enrollment
 is separate from tenant identity and isolated behind an eligibility function;
 future organization grants require reviewed policy and migration, not a promise
-that direct enrollment is the only future access source. Hosted login is required
-next: exact registered callback, expiring state and PKCE-bound single-use server
-handoff, same app eligibility and sessions. Hosted transaction implementation
-requires its detailed contract. Future JWT purpose/timing and conformance remain
+that direct enrollment is the only future access source. Hosted login uses an exact registered callback, expiring state and a PKCE-bound
+single-use server handoff with the same app eligibility and session policy. See
+the [hosted architecture](0004-hosted-login.md). Future JWT purpose/timing and conformance remain
 open; credential format is explicit and identity is independent.
 
 ## Concrete API / SDK / demo contract
@@ -138,6 +134,6 @@ expiry boundaries, renewal absolute cap, replay, concurrent instances, current
 sign-out isolation, eligibility removal, outages/reconnect and cleanup/recovery.
 SDK/adapter: malformed/unknown response fail closed, secrets absent browser output,
 CSRF/origin rejection, cookie tamper/key rotation, renewal/lost-response behavior,
-protected reload and sign-out. Private demo must pass fresh install/build and
-browser/direct HTTP integration using synthetic identities and ephemeral secrets.
+protected reload and sign-out. Application integrations require fresh install/build and
+browser/direct HTTP verification using synthetic identities and ephemeral secrets.
 Record actual coverage and failures separately; tests do not establish readiness.

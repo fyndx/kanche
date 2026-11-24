@@ -1,11 +1,7 @@
-# KN-2 hosted login design prerequisite
+# Hosted login architecture
 
-Engineering decision within the approved required hosted-next profile,
-21 November 2026. Extends [the app-owned lifecycle](0003-app-owned-login.md).
-Reviewed current KN-2/KN-6/KN-11 decisions and Confluence snapshots d1:950/d1:208.
-Independent design/security, backend and SDK reviewers were delegated by the user.
-This records engineering design completion before hosted route implementation;
-it is not test evidence or a new product approval.
+Extends [the app-owned lifecycle](0003-app-owned-login.md) with a browser-bound,
+single-use handoff. This architecture description is separate from test evidence.
 
 ## Trust and transaction contract
 
@@ -91,7 +87,7 @@ Hosted routes require an explicit canonical KANCHE_HOSTED_ORIGIN (HTTPS, or expl
 loopback HTTP development); no Host/forwarded-header authority. When absent hosted
 routes/feature are disabled. It must describe the service itself, not a redirect
 proxy. For the first SDK profile baseUrl must equal the canonical public hosted
-origin; a separate internal API origin is not supported yet. Loopback private evidence uses app http://localhost:3010 and Kanche
+origin; a separate internal API origin is not supported yet. A loopback development setup uses app http://localhost:3010 and Kanche
 http://127.0.0.1:18080, distinct hosts so cookies are not shared merely by port.
 Anonymous hosted cookie has a separate Kanche-specific name, Secure deployment
 __Host- prefix, Path=/, no Domain, HttpOnly, SameSite=Lax and bounded expiry.
@@ -154,7 +150,6 @@ handoff. Hosted submission also rechecks pending transaction/browser/CSRF state.
 Cancelled admitted requests consume their rate budget; cancellation cannot create
 extra simultaneous hash workers by dropping the awaiting future. Password work
 runs outside the coarse DB lock; all authoritative state decisions remain ordered.
-This is a reliability correction within the approved defaults, not a new flow.
 
 ## Rationale and acceptance obligations
 
@@ -163,13 +158,11 @@ app confusion and login CSRF. Separate hosted Origin/browser-cookie/CSRF checks
 protect password submission. State-only or app-secret-only handoffs would leave
 unnecessary interception/correlation gaps. One-use redemption trades transparent
 ambiguous-response recovery for a small auditable contract; explicit login restart
-is the chosen recovery, and its orphan limit is acknowledged. Independent reviewers
-confirmed these choices within approved defaults; no further product conflict was
-identified. This native profile is not an OAuth/OIDC compatibility claim.
+is the chosen recovery, and its orphan limit is acknowledged. This native profile is not an OAuth/OIDC compatibility claim.
 
 Primary references: [RFC7636](https://www.rfc-editor.org/rfc/rfc7636.html) and
 [RFC9700](https://www.rfc-editor.org/rfc/rfc9700.html). These inform protections;
-no provider research was repeated or provider compatibility inferred.
+they do not establish provider compatibility.
 
 Required evidence: forward migration from app-owned schema, repeat/checksum failure,
 operator exact registration and URI attacks; no password at app boundary; CSRF and
@@ -177,5 +170,5 @@ browser binding; S256/state/callback/app/tenant isolation; current enrollment an
 remove/reenable; exact transaction/code expiry; wrong proof does not consume code;
 concurrent password/exchange and replay; lost responses and outage/recovery; safe
 HTML/redirects; SDK/adapter redaction/cookie rollover; both existing app-owned and
-new hosted private browser/direct-HTTP flows. Record gaps and passing scope after
+new hosted browser/direct-HTTP flows. Record gaps and passing scope after
 implementation. Deployment TLS, capacity, edge abuse and restore drills remain open.

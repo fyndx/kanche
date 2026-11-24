@@ -19,8 +19,11 @@ Apply these rules to every design, implementation, review, and release.
 
 ## Planning and design gates
 
-- Use the Kanche Confluence space for planning/design discussions and Jira
-  project KN for delivery tasks. See `docs/architecture/v1-roadmap.md` for links.
+- Keep detailed planning, design discussions, approvals, and delivery tracking in
+  the private planning workspace. The repository roadmap is a public summary.
+- Never publish internal workspace URLs, page IDs, issue keys, private repository
+  mappings, or conversation/approval history in tracked files, commit messages,
+  PR descriptions, or review comments. Review documentation changes for exposure.
 - Review the native integration contract before authentication routes, the
   session lifecycle before session routes, and ownership/access before
   organization implementation. Migration of a task is not design approval.

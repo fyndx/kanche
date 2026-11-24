@@ -1,48 +1,11 @@
-- [Product scope and documentation status](docs/features/integration.md#scope-and-status)
-- Identity foundation — planned
-  - [Tenants and isolated account directories](docs/features/identity.md#tenant-and-application-provisioning)
-  - [Application registration and shared directories](docs/features/identity.md#tenant-and-application-provisioning)
-  - [Managed password connection and stable user identities](docs/features/identity.md#managed-password-connection)
-  - [Tenant and application isolation](docs/features/identity.md#isolation)
-- Authentication — planned
-  - [Password signup and identifier normalization](docs/features/authentication.md#signup-and-verification)
-  - [Account verification, delivery, and retries](docs/features/authentication.md#signup-and-verification)
-  - [Password sign-in and abuse controls](docs/features/authentication.md#password-sign-in)
-  - [Password recovery and one-time reset](docs/features/authentication.md#password-recovery)
-  - [Account disablement and access effects](docs/features/authentication.md#account-disablement)
-- Sessions — awaiting design gate
-  - [Cookies, tokens, origins, app binding, and signing keys](docs/features/sessions.md#session-design-gate)
-  - [Session issuance and protected requests](docs/features/sessions.md#issuance-and-protected-requests)
-  - [Expiry, renewal, retries, and concurrency](docs/features/sessions.md#renewal)
-  - [Sign-out and administrative revocation](docs/features/sessions.md#sign-out-and-revocation)
-- Organizations and authorization — proposed; awaiting design gate
-  - [Organization ownership and lifecycle](docs/features/organizations.md#organization-design-gate)
-  - [Invitations, acceptance, and membership removal](docs/features/organizations.md#membership-and-invitations)
-  - [Application access grants and revocation](docs/features/organizations.md#app-grants-and-context)
-  - [Organization context and switching](docs/features/organizations.md#app-grants-and-context)
-  - [Roles, permissions, and delegated administration](docs/features/organizations.md#roles-and-permissions)
-- Developer console and onboarding — planned
-  - [Developer accounts and workspace membership](docs/features/console.md#workspace-and-console-access)
-  - [Console permissions and workspace isolation](docs/features/console.md#workspace-and-console-access)
-  - [Workspace signup and tenant creation](docs/features/console.md#self-service-provisioning)
-  - [Create an app with its own directory](docs/features/console.md#self-service-provisioning)
-  - [Add an app to an existing directory](docs/features/console.md#self-service-provisioning)
-- Integration and developer experience
-  - [Native integration contract — pending design](docs/features/integration.md#first-integration-contract)
-  - [Fresh-checkout setup and contribution workflow — available](docs/features/integration.md#developer-workflow)
-- Service and operations
-  - [Health endpoint — implemented](docs/features/operations.md#current-service)
-  - [Environment configuration and startup validation — implemented](docs/features/operations.md#configuration)
-  - [JSON logs and generated request IDs — implemented](docs/features/operations.md#observability)
-  - [Graceful shutdown and restart — implemented with coverage limits](docs/features/operations.md#shutdown-and-restart)
-  - [Migrations, recovery, and deployment validation — planned](docs/features/operations.md#shared-saas-release-readiness)
-  - [Authentication during console downtime — planned](docs/features/operations.md#shared-saas-release-readiness)
-- Beyond V1 — deferred proposals
-  - [Configurable connections and external SSO](docs/features/future.md#connections-and-identifiers)
-  - [Alternative identifiers and verified account linking](docs/features/future.md#connections-and-identifiers)
-  - [Multiple password stores](docs/features/future.md#connections-and-identifiers)
-  - [Platform billing boundary](docs/features/future.md#billing-and-entitlements)
-  - [Product catalog, checkout, subscriptions, and entitlements](docs/features/future.md#billing-and-entitlements)
-  - [Managed dedicated hosting and deployment migration](docs/features/future.md#hosting)
-  - [Customer-owned cloud hosting evaluation](docs/features/future.md#hosting)
-- [Delivery roadmap](docs/architecture/v1-roadmap.md)
+# Kanche features
+
+The current branch supports operator-provisioned password identities, app-owned
+and hosted login, online app-bound sessions, a TypeScript server SDK, and a
+Next.js adapter. See the [integration overview](docs/features/integration.md),
+[app-owned guide](docs/contracts/app-owned-integration.md), and
+[hosted guide](docs/contracts/hosted-integration.md) for behavior and limits.
+
+Public signup, verification delivery, password recovery, organizations, and
+self-service onboarding are not implemented. The [roadmap](docs/architecture/v1-roadmap.md)
+contains the high-level direction; it is not a release commitment.

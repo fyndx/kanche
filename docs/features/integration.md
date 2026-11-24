@@ -17,8 +17,8 @@ and console remain unimplemented. See the
 
 ## First integration contract
 
-**Status:** App-owned and [hosted transaction prerequisites](../architecture/0004-hosted-login.md)
-completed under delegated approved defaults in [KN-2](https://fyndx.atlassian.net/browse/KN-2).
+**Status:** App-owned and hosted provisioned-password integrations are available
+in this branch. See their public guides for configuration and limits.
 
 Define Kanche's native developer configuration, browser and server
 responsibilities, origins, redirects, errors, and supported integration path
@@ -26,10 +26,7 @@ before implementing routes. The intended flow is configuration, sign-in,
 a protected request, renewal, and sign-out. The app-owned API/SDK and session behavior are recorded in the
 [design gate](../architecture/0003-app-owned-login.md).
 
-Keep design discussions and decisions in
-[Confluence](https://fyndx.atlassian.net/wiki/spaces/KA) and implementation scope,
-acceptance criteria, and validation evidence in
-[Jira](https://fyndx.atlassian.net/issues/?jql=project%20%3D%20KN).
+Detailed planning and approval history are maintained privately.
 
 ## Developer workflow
 

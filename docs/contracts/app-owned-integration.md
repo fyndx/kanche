@@ -25,28 +25,9 @@ as the original process and repository checks. The database uses a pinned image
 digest and a random loopback port, trusts local test connections, and is removed
 on exit. This is a disposable test setup, never deployment configuration.
 
-The private first-party demo and direct-HTTP client are at
-[kanche-auth-research/kanche-demo](https://github.com/fyndx/kanche-auth-research/tree/main/kanche-demo).
-Use an authorized checkout of that private repository beside this repository,
-with sibling directory names `kanche` and `kanche-auth-research`:
-
-```sh
-cd ../kanche-auth-research/kanche-demo
-npm ci
-npx playwright install chromium --only-shell
-npm run build
-npm run typecheck
-npm run evidence
-```
-
-The harness builds Kanche, starts a disposable PostgreSQL instance, migrates twice,
-provisions a synthetic verified user and its explicit app enrollment, generates
-app/cookie secrets in memory, and launches the actual API and production Next.js
-server on loopback ports 18080 and 3010. Those ports must be free. Browser visits
-use **localhost:3010** (not 127.0.0.1). It exercises direct HTTP and browser login,
-protected reload, explicit renewal, sign-out, CSRF, safe projections, API outage
-and recovery. It removes the database and stops processes afterward. It reads no
-provider env files and persists no keys, tokens, captures or browser state.
+The repository checks use synthetic identities and ephemeral test keys. See
+[verification coverage](../verification/app-owned-login.md) for repeatable checks
+and operational limits.
 
 ## Operator provisioning / migrations
 
