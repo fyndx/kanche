@@ -2,7 +2,7 @@
 
 ## Repeatable checks
 
-Run `make check` with pinned toolchains and Docker. The hosted PostgreSQL scenario
+Run `make check` with the toolchains from the README setup and Docker. The hosted PostgreSQL scenario
 covers migration, callback registration, browser/CSRF/PKCE binding, app and tenant
 isolation, expiry, replay, concurrent exchange, eligibility removal, and cleanup.
 SDK/adapter tests check state and PKCE correlation, encrypted cookies, response

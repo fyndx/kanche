@@ -44,8 +44,11 @@ managers are optional. Keep the minimum Node version in `package.json` and
 `package-lock.json` aligned with verified requirements and document changes in
 the README. Dependency versions remain locked; a floating LTS toolchain does not
 establish compatibility with future releases until CI passes on those releases.
-Update Rust in
-`rust-toolchain.toml` and `Cargo.toml`, then verify the fresh-checkout workflow.
+Rust tracks `stable` in `rust-toolchain.toml`; use `rustup update stable` to
+update an existing installation. `Cargo.toml`'s `rust-version` declares the
+minimum supported compiler, not a toolchain pin. Change that minimum only when
+requirements change and verify the fresh-checkout workflow. Record the compiler
+version used for verification; future stable releases require their own checks.
 
 Run `make security` before committing. Its directory scan covers untracked files;
 CI also scans Git history. Scanner output is redacted. Rust license checks cover

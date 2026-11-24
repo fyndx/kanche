@@ -2,7 +2,7 @@
 
 ## Repeatable checks
 
-Run `make check` with the pinned toolchains and Docker. It runs formatting,
+Run `make check` with the toolchains from the README setup and Docker. It runs formatting,
 Clippy, lint and documentation checks, Rust tests, process smoke checks,
 TypeScript checks, SDK/adapter tests, OpenAPI validation, PostgreSQL integration
 scenarios, and Rust documentation. Plain `cargo test` skips the database scenarios;

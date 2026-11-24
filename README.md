@@ -20,8 +20,12 @@ fresh-checkout results, browser findings and remaining operational limits.
 
 The supported verification environment is Linux x86_64 (CI: Ubuntu 24.04),
 with Git, GNU Make, Python 3.12 or newer, rustup, and the latest Node.js **LTS** release
-(Node 26 or newer) with its bundled npm, plus Docker for disposable PostgreSQL integration tests. Rust **1.99.1**, Rustfmt, and Clippy are pinned in
-`rust-toolchain.toml` and installed by rustup on first use. The security binary
+(Node 26 or newer) with its bundled npm, plus Docker for disposable PostgreSQL integration tests. Rust uses the **stable** channel, with Rustfmt and Clippy
+selected in `rust-toolchain.toml` and installed by rustup on first use.
+`Cargo.toml`'s `rust-version = "1.100.0"` sets the minimum supported compiler,
+not an exact toolchain pin. Run `rustup update stable` to update an existing
+installation; selecting the channel does not force an update on every setup
+or CI run. The security binary
 installer supports Linux x86_64; other platforms have not been verified.
 
 Use any tool manager or installation method to install the latest Node.js LTS.
