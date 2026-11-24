@@ -27,8 +27,9 @@ installer supports Linux x86_64; other platforms have not been verified.
 Use any tool manager or installation method to install the latest Node.js LTS.
 No global npm installation or upgrade is required. CI follows `lts/*` and checks
 for the latest available release. `package.json` declares the minimum Node
-version; `make tools` checks that the active build is LTS and reports Node/npm
-versions. The local check does not determine whether a newer LTS is available.
+version, enforced by `npm ci` through `.npmrc`'s `engine-strict` setting.
+`make tools` reports the active Node/npm versions. Setup accepts compatible
+Node builds without requiring an LTS marker; LTS remains the recommended choice.
 
 With Volta installed and its shims on `PATH`:
 
