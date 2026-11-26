@@ -10,7 +10,7 @@
     "licenses": "node scripts/check-npm-licenses.mjs"
   },
   "devDependencies": {
-    "oxfmt": "0.79.0",
+    "oxfmt": "0.80.0",
     "oxlint": "1.94.0"
   },
   "engines": {
